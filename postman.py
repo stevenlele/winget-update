@@ -10,6 +10,8 @@ def main():
     assert (version_1 := get_version_1(old_version)) >= old_version
     assert (version_2 := get_version_2(old_version)) >= old_version
 
+    print(f"Postman:\n{old_version=}\n{version_1=}\n{version_2=}")
+
     if version_1 > version_2:
         run_komac(
             "Postman.Postman",
