@@ -12,7 +12,7 @@ def main():
         url = f"https://updates.discord.com/distributions/app/manifests/latest?channel=stable&platform=win&arch={arch}"
         triple: list[int] = json.loads(get(url))["full"]["host_version"]
         assert triple[:2] == [1, 0]
-        assert (new_version := triple[3]) >= old_version
+        assert (new_version := triple[2]) >= old_version
         if new_version > old_version:
             run_komac(
                 "Discord.Discord",
