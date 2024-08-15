@@ -22,6 +22,6 @@ jobs:
           python3 main.py
           if [ -n "$(git status --porcelain)" ]; then
             git add .
-            git commit -m "Update packages"
+            git commit -m "Update packages [$GITHUB_RUN_NUMBER]"
             git push
           fi
