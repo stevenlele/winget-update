@@ -9,7 +9,7 @@ def get(url: str):
 
 
 def run_komac(identifier: str, version: str, url: str, base_version: str = ""):
-    command = ["./komac", identifier, "-v", version, "-u", url, "--submit"]
+    command = ["./komac", "update", identifier, "-v", version, "-u", url, "--submit"]
     if base_version:
         command.extend(("--base-version", base_version))
     print("$", subprocess.list2cmdline(command), flush=True)
