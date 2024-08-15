@@ -16,6 +16,7 @@ jobs:
         run: |
           set -x
           curl -O https://github.com/$GITHUB_ACTION_REPOSITORY/releases/download/latest/komac
+          chmod +x komac
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           python3 main.py
