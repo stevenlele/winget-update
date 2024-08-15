@@ -26,7 +26,7 @@ def get_version_1(old_version: Version) -> Version:
         return old_version
     url = json.loads(response).split(" ")[1]
     assert url.startswith("https://dl.pstmn.io/download/") and url.endswith("-full.nupkg")
-    assert (match := VERSION_REGEX.match(url))
+    assert (match := VERSION_REGEX.search(url))
     return Version(match.group())
 
 
