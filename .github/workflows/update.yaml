@@ -1,0 +1,26 @@
+name: Update packages
+
+on:
+  schedule:
+    - cron: "5 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Update packages
+        env:
+          GITHUB_TOKEN: ${{ secrets.TOKEN }}
+        run: |
+          set -x
+          curl -O https://github.com/$GITHUB_ACTION_REPOSITORY/releases/download/latest/komac
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          python3 main.py
+          if [ -n "$(git status --porcelain)" ]; then
+            git add .
+            git commit -m "Update packages"
+            git push
+          fi
