@@ -18,7 +18,7 @@ def main():
                 "Discord.Discord",
                 f"1.0.{new_version}",
                 f"https://dl.discordapp.net/distro/app/stable/win/{arch}/1.0.{new_version}/DiscordSetup.exe",
-                f"1.0.{old_version}",
+                {"base_version": f"1.0.{old_version}"},
             )
             versions[arch] = new_version
 
