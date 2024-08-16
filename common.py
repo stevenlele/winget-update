@@ -24,7 +24,7 @@ def run_komac(identifier: str, version: str, url: str, args: KomacArgs = {}):
     command = ["./komac", "update", identifier, "-v", version, "-u", url, "--submit"]
     for key, value in args.items():
         command.append(f"--{key.replace('_', '-')}")
-        command.append(str(value))
+        command.append(f"-- {value}" if (value := str(value)).startswith("-") else value)
     print("$", subprocess.list2cmdline(command), flush=True)
     subprocess.run(command, check=True, stdout=stdout, stderr=stderr)
 
