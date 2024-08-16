@@ -39,7 +39,7 @@ def main():
         )
 
         args: KomacArgs = {
-            "release_notes": release_notes,
+            "release_notes": base64_encode(release_notes),
             "release_notes_locale": "zh-CN",
             "release_notes_url": f"https://z.weixin.qq.com/web/change-log/{release['id']}",
             "release_date": f"{release_date:%Y-%m-%d}",

@@ -1,5 +1,6 @@
 import re
 import subprocess
+from base64 import b64encode
 from sys import stderr, stdout
 from typing import TypedDict
 
@@ -27,6 +28,10 @@ def run_komac(identifier: str, version: str, url: str, args: KomacArgs = {}):
         command.append(f"-- {value}" if (value := str(value)).startswith("-") else value)
     print("$", subprocess.list2cmdline(command), flush=True)
     subprocess.run(command, check=True, stdout=stdout, stderr=stderr)
+
+
+def base64_encode(text: str) -> str:
+    return b64encode(text.encode()).decode()
 
 
 VERSION_REGEX = re.compile(r"\d+(?:\.\d+)+")

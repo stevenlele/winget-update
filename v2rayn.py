@@ -34,7 +34,7 @@ def main():
         {
             "owner": "2dust",
             "repo": "v2rayN",
-            "release_notes": b64encode(release_notes.encode()).decode(),
+            "release_notes": base64_encode(release_notes),
             "release_notes_url": release["html_url"],
             "release_notes_locale": "zh-CN",
         },
