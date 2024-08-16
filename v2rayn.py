@@ -1,3 +1,4 @@
+from base64 import b64encode
 import json
 import re
 
@@ -33,7 +34,7 @@ def main():
         {
             "owner": "2dust",
             "repo": "v2rayN",
-            "release_notes": release_notes,
+            "release_notes": b64encode(release_notes.encode()).decode(),
             "release_notes_url": release["html_url"],
             "release_notes_locale": "zh-CN",
         },
