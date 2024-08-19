@@ -10,16 +10,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
       - name: Update packages
         env:
           GITHUB_TOKEN: ${{ secrets.TOKEN }}
+          KOMAC_FORK_OWNER: ${{ github.repository_owner }}
         run: |
           set -x
           wget -nv "https://github.com/$GITHUB_REPOSITORY/releases/latest/download/komac"
           chmod +x komac
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          pip3 install httpx
           python3 main.py
+      - name: Push changes
+        if: always()
+        run: |
           if [ -n "$(git status --porcelain)" ]; then
             git add .
             git commit -m "Update packages [$GITHUB_RUN_NUMBER]"

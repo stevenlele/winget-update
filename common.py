@@ -1,14 +1,24 @@
 import re
 import subprocess
 from base64 import b64encode
+from os import getenv
 from sys import stderr, stdout
-from typing import TypedDict
+from typing import Sequence, TypedDict
+
+import httpx
+
+CLIENT = httpx.Client()
 
 
 def get(url: str):
-    return subprocess.run(
-        ("curl", "-sSf", url), check=True, stdout=subprocess.PIPE, stderr=stderr
-    ).stdout.decode()
+    assert (response := CLIENT.get(url)).is_success
+    return response.content
+
+
+def get_gh_api(url: str):
+    assert (token := getenv("GITHUB_TOKEN"))
+    assert (response := CLIENT.get(url, headers={"Authorization": f"token {token}"})).is_success
+    return response.json()
 
 
 class KomacArgs(TypedDict, total=False):
@@ -21,8 +31,12 @@ class KomacArgs(TypedDict, total=False):
     repo: str
 
 
-def run_komac(identifier: str, version: str, url: str, args: KomacArgs = {}):
-    command = ["./komac", "update", identifier, "-v", version, "-u", url, "--submit"]
+def run_komac(identifier: str, version: str, urls: str | Sequence[str], args: KomacArgs = {}):
+    command = ["./komac", "update", identifier, "-v", version, "--submit", "-u"]
+    if isinstance(urls, str):
+        command.append(urls)
+    else:
+        command.extend(urls)
     for key, value in args.items():
         command.append(f"--{key.replace('_', '-')}")
         command.append(f"-- {value}" if (value := str(value)).startswith("-") else value)
@@ -37,10 +51,19 @@ def base64_encode(text: str) -> str:
 VERSION_REGEX = re.compile(r"\d+(?:\.\d+)+")
 
 
+class VersionData(TypedDict):
+    version: str
+    has_release_notes: bool
+
+
 class Version:
-    def __init__(self, version: str) -> None:
-        self.version = version
-        self.value = tuple(map(int, version.split(".")))
+    def __init__(self, arg: str | tuple[int, ...]) -> None:
+        if isinstance(arg, str):
+            self.version = arg
+            self.value = tuple(map(int, arg.split(".")))
+        else:
+            self.version = ".".join(map(str, arg))
+            self.value = arg
 
     def __eq__(self, other) -> bool:
         return self.value == other.value

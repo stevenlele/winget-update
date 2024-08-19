@@ -9,7 +9,7 @@ def main():
     with open("v2rayn.txt") as f:
         old_version = Version(f.read())
 
-    release = json.loads(get("https://api.github.com/repos/2dust/v2rayN/releases"))[0]
+    release = get_gh_api("https://api.github.com/repos/2dust/v2rayN/releases")[0]
 
     if (new_version := Version(release["tag_name"])) == old_version:
         return
