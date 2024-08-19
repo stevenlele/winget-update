@@ -1,0 +1,19 @@
+name: Update Telegram
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update Telegram
+        env:
+          GITHUB_TOKEN: ${{ secrets.TOKEN }}
+          KOMAC_FORK_OWNER: ${{ github.repository_owner }}
+          RUST_LOG: debug
+        run: |
+          set -x
+          wget -nv "https://github.com/$GITHUB_REPOSITORY/releases/latest/download/komac"
+          chmod +x komac
+          ./komac update Telegram.TelegramDesktop -v 5.4.1 --submit -u https://td.telegram.org/tx64/tsetup-x64.5.4.1.exe https://td.telegram.org/tsetup/tsetup.5.4.1.exe https://td.telegram.org/tx64/tportable-x64.5.4.1.zip https://td.telegram.org/tsetup/tportable.5.4.1.zip --owner telegramdesktop --repo tdesktop --release-notes LSBGaXggY3Jhc2ggd2hlbiBzZW5kaW5nIFN0YXIgUmVhY3Rpb24gaW4gY29tbWVudHMuCi0gRml4IGxvYWRpbmcgIlNlbmQgQXMiIGNoYW5uZWxzIGluIGEgY2hhbm5lbC4KLSBQbGFjZSBTdGFyIFJlYWN0aW9uIGFsd2F5cyBmaXJzdCBpbiBsaXN0LgotIFJlbW92ZWQgcGFpZCBJbnZpdGUgTGlua3MgaW4gZ3JvdXBzLg== --release-notes-url https://github.com/telegramdesktop/tdesktop/releases/tag/v5.4.1 --release-notes-locale en-US
