@@ -8,7 +8,7 @@ from common import CLIENT
 
 def main():
     exceptions = []
-    for mod in (wetype, discord, postman, v2rayn, telegram):
+    for mod in (wetype, discord, postman, v2rayn):
         try:
             mod.main()
         except Exception as e:
