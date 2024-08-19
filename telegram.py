@@ -34,7 +34,7 @@ def main():
             "repo": "tdesktop",
             "release_notes": base64_encode(github_release["body"]),
             "release_notes_url": github_release["html_url"],
-            "release_notes_locale": "zh-CN",
+            "release_notes_locale": "en-US",
         }
     else:
         args = {}
