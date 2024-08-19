@@ -17,6 +17,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.TOKEN }}
           KOMAC_FORK_OWNER: ${{ github.repository_owner }}
+          RUST_LOG: debug
         run: |
           set -x
           wget -nv "https://github.com/$GITHUB_REPOSITORY/releases/latest/download/komac"
