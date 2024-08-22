@@ -14,6 +14,6 @@ jobs:
           RUST_LOG: debug
         run: |
           set -x
-          wget -nv "https://github.com/russellbanks/Komac/releases/download/v2.4.0/komac-2.4.0-x86_64-unknown-linux-gnu.tar.gz"
-          tar xzvf komac-2.4.0-x86_64-unknown-linux-gnu.tar.gz
+          wget -nv "https://github.com/russellbanks/Komac/releases/download/v2.4.1/komac-2.4.1-x86_64-unknown-linux-gnu.tar.gz"
+          tar xzvf komac-2.4.1-x86_64-unknown-linux-gnu.tar.gz
           ./komac update Telegram.TelegramDesktop -v 5.4.2 --dry-run -u https://td.telegram.org/tx64/tportable-x64.5.4.1.zip # https://td.telegram.org/tsetup/tportable.5.4.1.zip https://td.telegram.org/tx64/tsetup-x64.5.4.1.exe https://td.telegram.org/tsetup/tsetup.5.4.1.exe
