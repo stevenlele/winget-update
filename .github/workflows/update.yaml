@@ -24,7 +24,7 @@ jobs:
           chmod +x komac
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          pip3 install httpx
+          pip3 install httpx rich ruamel.yaml
           python3 main.py
       - name: Push changes
         if: always()

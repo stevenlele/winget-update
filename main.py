@@ -1,5 +1,4 @@
 import discord
-import postman
 import telegram
 import v2rayn
 import wetype
@@ -8,7 +7,7 @@ from common import CLIENT
 
 def main():
     exceptions = []
-    for mod in (wetype, discord, postman, v2rayn):
+    for mod in (wetype, discord, v2rayn):
         try:
             mod.main()
         except Exception as e:
