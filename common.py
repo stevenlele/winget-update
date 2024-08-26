@@ -12,7 +12,7 @@ CLIENT = httpx.Client()
 
 def get(url: str):
     assert (response := CLIENT.get(url)).is_success
-    return response.content
+    return response.text
 
 
 def get_gh_api(url: str):
