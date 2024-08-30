@@ -1,11 +1,12 @@
 from os import getenv
+from os.path import expandvars
 from pprint import pformat
-from typing import Any, Literal, Sequence, TypedDict
+from typing import Any, Callable, Literal, Sequence, TypedDict
 
 from rich import print
 from ruamel.yaml import YAML
 
-from common import CLIENT, KomacArgs
+from common import CLIENT, KomacArgs, base64_encode
 
 assert (_TOKEN := getenv("GITHUB_TOKEN"))
 HEADERS = {"Authorization": f"token {_TOKEN}"}
@@ -14,6 +15,8 @@ assert (OWNER := getenv("GITHUB_REPOSITORY_OWNER"))
 
 MICROSOFT = "microsoft"
 WINGET_PKGS = "winget-pkgs"
+MICROSOFT_WINGET_PKGS = f"{MICROSOFT}/{WINGET_PKGS}"
+DEFAULT_BRANCH = "master"
 
 
 class Installer(TypedDict, total=False):
@@ -25,7 +28,7 @@ class Installer(TypedDict, total=False):
 
 
 type PRToWait = int
-type Manifests = dict[str, str]
+type _Manifests = dict[str, str]
 
 
 def update(
@@ -40,7 +43,7 @@ def update(
     else:
         print(" without release notes...")
 
-    prs = get_existing_prs(identifier, version)
+    prs = _get_existing_prs(identifier, version)
     print(f"Found {len(prs)} existing PRs")
 
     owner_open_pr = None
@@ -48,16 +51,14 @@ def update(
 
     for i, pr in enumerate(prs):
         print(f"({i+1}) ", end="")
-        print_pr(pr)
+        _print_pr(pr)
 
-        if pr["headRepositoryOwner"]["login"] == OWNER:
+        if pr["headRepositoryOwner"] == OWNER:
             if pr["state"] == "OPEN":
                 assert owner_open_pr is None
                 owner_open_pr = pr
-            elif head_ref := pr["headRef"]:
-                assert pr["state"] == "MERGED"
-                print("- Deleting merged branch...")
-                delete_branch(head_ref["name"])
+            else:
+                assert pr["headRef"] is None
         elif pr["state"] == "OPEN":
             assert other_open_pr is None
             other_open_pr = pr
@@ -65,16 +66,26 @@ def update(
     if owner_open_pr:
         print("Checking owner's PR...")
         assert (ref := owner_open_pr["headRef"])
+        sha = ref["sha"]
     elif other_open_pr:
-        print(f"Checking PR by {other_open_pr['author']['login']}...")
+        print(f"Checking PR by {other_open_pr['author']}...")
         assert (ref := other_open_pr["headRef"])
+        sha = ref["sha"]
     else:
-        print("Checking master branch...")
-        ref = None
+        print(f"Checking {DEFAULT_BRANCH} branch...")
+        refs = _rest(
+            "GET", f"/repos/{MICROSOFT_WINGET_PKGS}/git/matching-refs/heads/{DEFAULT_BRANCH}"
+        )
+        assert len(refs) == 1
+        sha = refs[0]["object"]["sha"]
 
-    manifests = get_manifests(ref, identifier, version)
-
-    if check_manifests(manifests, urls, args):
+    path = _get_path(identifier, version)
+    message_prefix = "Release notes"
+    if not (manifests := _get_manifests(sha, path)):
+        print("There's no manifest of this version, performing update...")
+        manifests = _update_new_version(identifier, version, urls, args)
+        message_prefix = "New version"
+    elif not _update_existing_manifests(manifests, urls, args):
         print("This branch is up-to-date, we'll mark this update as done")
         return None
     elif other_open_pr:
@@ -83,12 +94,26 @@ def update(
 
     del other_open_pr
 
-    # create branch or use existing branch
-    # from scratch or add release notes
-    # create pull request or skip
+    message = f"{message_prefix}: {identifier} version {version}"
+    if owner_open_pr:
+        _create_commit(ref["name"], message, path, manifests)
+        print("[green]✓ Updated existing pull request[/]")
+        return None
+
+    if not _owner_repo_id:
+        print("Creating fork...")
+        _create_fork()
+    branch_name = f"{identifier}-{version}"
+    print(f"Creating new branch {branch_name!r}...")
+    _create_branch(branch_name, sha)
+    commit_url = _create_commit(branch_name, message, path, manifests)
+    print(f"Created commit: {commit_url}")
+    pr_url = _create_pr(message, branch_name)
+    print(f"Created PR: {pr_url}")
+    return None
 
 
-def rest(method: str, url: str, *, json: dict | None = None) -> Any:
+def _rest(method: str, url: str, *, json: dict | None = None) -> Any:
     if url.startswith("/"):
         url = f"https://api.github.com{url}"
     else:
@@ -104,11 +129,11 @@ def rest(method: str, url: str, *, json: dict | None = None) -> Any:
 
 
 def is_pr_open(number: int) -> bool:
-    response = rest("GET", f"/repos/{MICROSOFT}/{WINGET_PKGS}/issues/{number}")
+    response = _rest("GET", f"/repos/{MICROSOFT_WINGET_PKGS}/issues/{number}")
     return response["state"] == "open"
 
 
-def graphql(query: str, variables: dict = {}):
+def _graphql(query: str, variables: dict = {}, accept_error: Callable[[list], bool] | None = None):
     response = CLIENT.post(
         "https://api.github.com/graphql",
         json={"query": query, "variables": variables},
@@ -116,75 +141,86 @@ def graphql(query: str, variables: dict = {}):
     )
     assert response.is_success
     payload = response.json()
-    if errors := payload.get("errors"):
+    if (errors := payload.get("errors")) and (accept_error is None or not accept_error(errors)):
         raise RuntimeError(pformat(errors, sort_dicts=False))
     return payload["data"]
 
 
-class GitObject(TypedDict):
-    oid: str
-
-
-class Ref(TypedDict):
+class _Ref(TypedDict):
     name: str
-    target: GitObject
+    # target: GitObject
+    sha: str
 
 
-class User(TypedDict):
-    login: str
-
-
-class PullRequest(TypedDict):
+class _PullRequest(TypedDict):
     number: int
     title: str
     state: Literal["OPEN", "CLOSED", "MERGED"]
     url: str
-    headRef: Ref | None
-    headRepositoryOwner: User
-    author: User
+    headRef: _Ref | None
+    headRepositoryOwner: str  # User
+    author: str  # User
 
 
-def print_pr(pr: PullRequest):
-    print(f"{pr['title']!r} by {pr['author']['login']} ({pr['state']})")
+def _print_pr(pr: _PullRequest):
+    print(repr(pr["title"]), end="")
+    if author := pr.get("author"):
+        print(f" by {author}", end="")
+    print(f" ({pr['state']})")
     print(pr["url"])
 
 
-def get_existing_prs(identifier: str, version: str) -> list[PullRequest]:
-    return graphql(
+def _get_existing_prs(identifier: str, version: str) -> list[_PullRequest]:
+    result = _graphql(
         """query PullRequestSearch($q: String!) { search(query: $q, type: ISSUE, first: 30) {"""
         """nodes { ... on PullRequest {"""
         """number title state url headRef { name target { oid } } headRepositoryOwner { login } author { login }"""
         """} } } }""",
-        {"q": f"repo:{MICROSOFT}/{WINGET_PKGS} type:pr in:title {identifier} {version}"},
+        {"q": f"repo:{MICROSOFT_WINGET_PKGS} type:pr in:title {identifier} {version}"},
     )["search"]["nodes"]
+    for pr in result:
+        pr["headRepositoryOwner"] = pr["headRepositoryOwner"]["login"]
+        pr["author"] = pr["author"]["login"]
+        if headRef := pr.get("headRef"):
+            headRef["sha"] = headRef.pop("target")["oid"]
+    return result
 
 
-def create_branch(name: str, sha: str):
+def _create_branch(name: str, sha: str):
     payload = {"ref": f"refs/heads/{name}", "sha": sha}
-    rest("POST", f"/repos/{OWNER}/{WINGET_PKGS}/git/refs", json=payload)
+    _rest("POST", f"/repos/{OWNER}/{WINGET_PKGS}/git/refs", json=payload)
+    global _should_delete_fork
+    _should_delete_fork = False
 
 
-def delete_branch(name: str):
-    rest("DELETE", f"/repos/{OWNER}/{WINGET_PKGS}/git/refs/heads/{name}")
+def _create_fork():
+    global _owner_repo_id
+    _owner_repo_id = _rest(
+        "POST", f"/repos/{MICROSOFT_WINGET_PKGS}/forks", json={"default_branch_only": True}
+    )["node_id"]
+    _rest(
+        "PATCH",
+        f"/repos/{OWNER}/{WINGET_PKGS}",
+        json={"has_issues": False, "has_wiki": False, "has_projects": False},
+    )
 
 
-def create_fork():
-    rest("POST", f"/repos/{MICROSOFT}/{WINGET_PKGS}/forks", json={"default_branch_only": True})
+def delete_fork_if_should():
+    if not _owner_repo_id or not _should_delete_fork:
+        return
+    print("Deleting fork...")
+    _rest("DELETE", f"/repos/{OWNER}/{WINGET_PKGS}")
 
 
-def delete_fork():
-    rest("DELETE", f"/repos/{OWNER}/{WINGET_PKGS}")
-
-
-def get_manifests(sha: str, identifier: str, version: str) -> Manifests:
-    response = graphql(
+def _get_manifests(sha: str, path: str) -> _Manifests:
+    response = _graphql(
         """query GetDirectoryContentWithText($owner: String!, $name: String!, $expression: String!) {"""
         """repository(owner: $owner, name: $name) { object(expression: $expression) { ... on Tree {"""
         """entries { name object { ... on Blob { text } } } } } } }""",
         {
             "owner": MICROSOFT,
             "name": WINGET_PKGS,
-            "expression": f"{sha}:{get_path(identifier, version)}",
+            "expression": f"{sha}:{path}",
         },
     )
     return {
@@ -193,12 +229,136 @@ def get_manifests(sha: str, identifier: str, version: str) -> Manifests:
     }
 
 
-def get_path(identifier: str, version: str) -> str:
+def _get_path(identifier: str, version: str) -> str:
     return f"manifests/{identifier[0].lower()}/{identifier.replace('.', '/')}/{version}"
 
 
-def check_manifests(manifests: Manifests, urls: Sequence[Installer], args: KomacArgs) -> bool:
-    if not manifests:
-        print("There's no manifest of this version")
-        return False
+def _update_existing_manifests(
+    manifests: _Manifests, urls: Sequence[Installer], args: KomacArgs
+) -> bool:
+    # TODO
     raise NotImplementedError
+
+
+def _update_new_version(
+    identifier: str, version: str, urls: Sequence[Installer], args: KomacArgs
+) -> _Manifests:
+    # TODO
+    pass
+
+
+def _create_commit(
+    branch_name: str,
+    commit_message: str,
+    path: str,
+    manifests: _Manifests,
+) -> str:
+    response = _graphql(
+        """mutation CreateCommit($input: CreateCommitOnBranchInput!) {"""
+        """createCommitOnBranch(input: $input) { commit { url } } }""",
+        {
+            "input": {
+                "branch": {
+                    "repositoryNameWithOwner": f"{OWNER}/{WINGET_PKGS}",
+                    "branchName": branch_name,
+                    # id: str
+                },
+                "message": {"headline": commit_message},
+                "fileChanges": {
+                    "additions": [
+                        {"path": f"{path}/{filename}", "contents": base64_encode(content)}
+                        for filename, content in manifests.items()
+                    ]
+                },
+                # expectedHeadOid: str
+            }
+        },
+    )
+    return response["createCommitOnBranch"]["commit"]["url"]
+
+
+_owner_repo_id: str | None = None
+_should_delete_fork = True
+
+
+def check_repo_and_delete_merged_branches():
+    repository = _graphql(
+        """query GetBranches($owner: String!, $name: String!) { repository(name: $name, owner: $owner) {"""
+        """id defaultBranchRef { name } refs(first: 100, refPrefix: "refs/heads/") { nodes { name"""
+        """associatedPullRequests(first: 5) { nodes { title url state repository { nameWithOwner } } }"""
+        """} } } }""",
+        {"owner": OWNER, "name": WINGET_PKGS},
+        lambda errors: len(errors) == 1
+        and (error := errors[0])["type"] == "NOT_FOUND"
+        and error["path"] == ["repository"],
+    )["repository"]
+    if repository is None:
+        print("Fork does not exist")
+        return
+    global _owner_repo_id
+    _owner_repo_id = repository["id"]
+
+    print("Checking for merged branches...")
+    default_branch_name = repository["defaultBranchRef"]["name"]
+    branch_names_pending_deletion = []
+    for ref in repository["refs"]["nodes"]:
+        prs = ref["associatedPullRequests"]["nodes"]
+        if ref["name"] == default_branch_name:
+            assert not prs
+            continue
+        print(f"Branch {ref['name']!r}:")
+        if not prs:
+            print("[bold red]! There are no PRs associated with this branch[/]")
+            global _should_delete_fork
+            _should_delete_fork = False
+            continue
+        can_delete_branch = True
+        for pr in prs:
+            _print_pr(pr)
+            if pr["repository"]["nameWithOwner"] != MICROSOFT_WINGET_PKGS:
+                print("[bold red]! This PR is not against the official repo[/]")
+                can_delete_branch = False
+            elif pr["state"] == "CLOSED":
+                print("[bold red]! This PR is closed unmerged[/]")
+                can_delete_branch = False
+            elif pr["state"] == "OPEN":
+                can_delete_branch = False
+            else:
+                assert pr["state"] == "MERGED"
+        if can_delete_branch:
+            print("[green]✓ This branch will be deleted[/]")
+            branch_names_pending_deletion.append(ref["name"])
+        else:
+            print("This branch will not be deleted")
+    if branch_names_pending_deletion:
+        print("Deleting branches:", branch_names_pending_deletion)
+        _graphql(
+            """mutation UpdateRefs($input: UpdateRefsInput!) { updateRefs(input: $input) { clientMutationId } }""",
+            {
+                "input": {
+                    "repositoryId": _owner_repo_id,
+                    "refUpdates": [
+                        {
+                            "name": f"refs/heads/{branch_name}",
+                            "afterOid": "0" * 40,
+                        }
+                        for branch_name in branch_names_pending_deletion
+                    ],
+                }
+            },
+        )
+
+
+def _create_pr(title: str, branch_name: str) -> str:
+    return _rest(
+        "POST",
+        f"/repos/{MICROSOFT_WINGET_PKGS}/pulls",
+        json={
+            "title": title,
+            "head": f"{OWNER}:{branch_name}",
+            "body": "Created by " + expandvars(
+                "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+            ),
+            "base": DEFAULT_BRANCH,
+        },
+    )["html_url"]
