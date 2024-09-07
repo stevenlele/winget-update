@@ -20,7 +20,7 @@ jobs:
           chmod +x komac
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          pip3 install httpx rich ruamel.yaml
+          pip3 install httpx rich ruamel.yaml pangu
       - name: Update packages
         env:
           GITHUB_TOKEN: ${{ secrets.TOKEN }}
