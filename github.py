@@ -355,6 +355,7 @@ def check_repo_and_delete_merged_branches():
             branch_names_pending_deletion.append(ref["name"])
         else:
             print("This branch will not be deleted")
+            _should_delete_fork = False
     if branch_names_pending_deletion:
         print("Deleting branches:", branch_names_pending_deletion)
         _graphql(
