@@ -309,7 +309,7 @@ _should_delete_fork = True
 def check_repo_and_delete_merged_branches():
     repository = _graphql(
         """query GetBranches($owner: String!, $name: String!) { repository(name: $name, owner: $owner) {"""
-        """id defaultBranchRef { name } refs(first: 100, refPrefix: "refs/heads/") { nodes { name"""
+        """id defaultBranchRef { name } refs(first: 100, refPrefix: "refs/heads/") { nodes { name """
         """associatedPullRequests(first: 5) { nodes { title url state repository { nameWithOwner } } }"""
         """} } } }""",
         {"owner": OWNER, "name": WINGET_PKGS},
