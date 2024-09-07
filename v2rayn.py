@@ -1,8 +1,7 @@
-from base64 import b64encode
-import json
 import re
 
 from common import *
+from github import get_gh_api, update
 
 
 def main():
@@ -25,9 +24,8 @@ def main():
     release_notes: str = release["body"]
     release_notes = re.sub(r"^#+ 本次更新.*", "", release_notes)
     release_notes = re.sub(r"#+ 注意.+", "", release_notes, flags=re.DOTALL)
-    release_notes = release_notes.strip()
 
-    run_komac(
+    update(
         "2dust.v2rayN",
         f"{new_version}",
         url,
@@ -39,6 +37,8 @@ def main():
             "release_notes_locale": "zh-CN",
         },
     )
+
+    return
 
     with open("v2rayn.txt", "w") as f:
         f.write(str(new_version))

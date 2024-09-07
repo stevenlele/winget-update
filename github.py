@@ -4,9 +4,9 @@ from pprint import pformat
 from typing import Any, Callable, Literal, Sequence, TypedDict
 
 from rich import print
-from ruamel.yaml import YAML
 
-from common import CLIENT, KomacArgs, base64_encode
+from common import *
+from manifest import *
 
 assert (_TOKEN := getenv("GITHUB_TOKEN"))
 HEADERS = {"Authorization": f"token {_TOKEN}"}
@@ -19,16 +19,11 @@ MICROSOFT_WINGET_PKGS = f"{MICROSOFT}/{WINGET_PKGS}"
 DEFAULT_BRANCH = "master"
 
 
-class Installer(TypedDict, total=False):
-    Architecture: str
-    InstallerType: str
-    Scope: str
-    InstallerUrl: str
-    UpgradeBehavior: str
-
-
 type PRToWait = int
-type _Manifests = dict[str, str]
+
+
+def get_gh_api(url: str) -> Any:
+    return _rest("GET", url)
 
 
 def update(
@@ -82,10 +77,12 @@ def update(
     path = _get_path(identifier, version)
     message_prefix = "Release notes"
     if not (manifests := _get_manifests(sha, path)):
+        assert refs
         print("There's no manifest of this version, performing update...")
-        manifests = _update_new_version(identifier, version, urls, args)
+        manifests = _get_base_manifests(identifier, args, sha=sha)
+        update_new_version(manifests, identifier, version, urls, args)
         message_prefix = "New version"
-    elif not _update_existing_manifests(manifests, urls, args):
+    elif not fill_in_release_notes(manifests, identifier, args):
         print("This branch is up-to-date, we'll mark this update as done")
         return None
     elif other_open_pr:
@@ -108,6 +105,9 @@ def update(
     _create_branch(branch_name, sha)
     commit_url = _create_commit(branch_name, message, path, manifests)
     print(f"Created commit: {commit_url}")
+    if True:
+        print("Skipped creating PR")
+        return None
     pr_url = _create_pr(message, branch_name)
     print(f"Created PR: {pr_url}")
     return None
@@ -212,7 +212,7 @@ def delete_fork_if_should():
     _rest("DELETE", f"/repos/{OWNER}/{WINGET_PKGS}")
 
 
-def _get_manifests(sha: str, path: str) -> _Manifests:
+def _get_directory(sha: str, path: str) -> dict:
     response = _graphql(
         """query GetDirectoryContentWithText($owner: String!, $name: String!, $expression: String!) {"""
         """repository(owner: $owner, name: $name) { object(expression: $expression) { ... on Tree {"""
@@ -223,35 +223,59 @@ def _get_manifests(sha: str, path: str) -> _Manifests:
             "expression": f"{sha}:{path}",
         },
     )
+    return response
+
+
+def _get_manifests(sha: str, path: str) -> Manifests:
+    response = _get_directory(sha, path)
     return {
         entry["name"]: entry["object"]["text"]
         for entry in response["repository"]["object"]["entries"]
     }
 
 
-def _get_path(identifier: str, version: str) -> str:
-    return f"manifests/{identifier[0].lower()}/{identifier.replace('.', '/')}/{version}"
+def _get_subdirectories(sha: str, path: str) -> list[str]:
+    response = _get_directory(sha, path)
+    return [
+        entry["name"]
+        for entry in response["repository"]["object"]["entries"]
+        if not entry["object"]
+    ]
 
 
-def _update_existing_manifests(
-    manifests: _Manifests, urls: Sequence[Installer], args: KomacArgs
-) -> bool:
-    # TODO
-    raise NotImplementedError
+def _get_path(identifier: str, version: str | None = None) -> str:
+    base = f"manifests/{identifier[0].lower()}/{identifier.replace('.', '/')}"
+    return base if version is None else f"{base}/{version}"
 
 
-def _update_new_version(
-    identifier: str, version: str, urls: Sequence[Installer], args: KomacArgs
-) -> _Manifests:
-    # TODO
-    pass
+def _get_base_manifests(identifier: str, args: KomacArgs, *, sha: str) -> Manifests:
+    if (base_version := args.get("base_version")) and (
+        manifests := _get_manifests(sha, _get_path(identifier, base_version))
+    ):
+        return manifests
+
+    raw_versions = _get_subdirectories(sha, _get_path(identifier))
+    if base_version:
+        base_version = Version(base_version)
+        version = max(
+            version
+            for raw_version in raw_versions
+            if (version := try_parse_version(raw_version)) and version <= base_version
+        )
+    else:
+        version = max(
+            version for raw_version in raw_versions if (version := try_parse_version(raw_version))
+        )
+
+    assert (manifests := _get_manifests(sha, _get_path(identifier, f"{version}")))
+    return manifests
 
 
 def _create_commit(
     branch_name: str,
     commit_message: str,
     path: str,
-    manifests: _Manifests,
+    manifests: Manifests,
 ) -> str:
     response = _graphql(
         """mutation CreateCommit($input: CreateCommitOnBranchInput!) {"""
@@ -356,7 +380,7 @@ def _create_pr(title: str, branch_name: str) -> str:
         json={
             "title": title,
             "head": f"{OWNER}:{branch_name}",
-            "body": "Created by " + expandvars(
+            "body": "Created in " + expandvars(
                 "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
             ),
             "base": DEFAULT_BRANCH,

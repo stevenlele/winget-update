@@ -1,6 +1,7 @@
 import json
 
 from common import *
+from github import get_gh_api
 
 
 def main():
@@ -37,7 +38,7 @@ def main():
             "release_notes_locale": "en-US",
         }
     else:
-        args = {}
+        args = {"release_notes_locale": "en-US"}
 
     run_komac("Telegram.TelegramDesktop", f"{new_version}", urls, args)
 
@@ -45,6 +46,7 @@ def main():
         new_version_data: VersionData = {
             "version": f"{new_version}",
             "has_release_notes": bool(github_release),
+            "blocking_pr": None,
         }
         json.dump(new_version_data, f, separators=(",", ":"))
 

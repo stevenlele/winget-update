@@ -28,7 +28,10 @@ def main():
     try:
         release = next(r for r in changelog if r["platform"] == 4 and r["version"] == short_version)
     except StopIteration:
-        args: KomacArgs = {}
+        args: KomacArgs = {
+            "release_notes_locale": "zh-CN",
+            "keep_notes_on_version_prefix": f"{short_version}."
+        }
     else:
         release_date = datetime.fromtimestamp(release["release_date"], ZoneInfo("Asia/Shanghai"))
 

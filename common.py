@@ -1,7 +1,6 @@
 import re
 import subprocess
 from base64 import b64encode
-from os import getenv
 from sys import stderr, stdout
 from typing import Sequence, TypedDict
 
@@ -15,12 +14,6 @@ def get(url: str):
     return response.text
 
 
-def get_gh_api(url: str):
-    assert (token := getenv("GITHUB_TOKEN"))
-    assert (response := CLIENT.get(url, headers={"Authorization": f"token {token}"})).is_success
-    return response.json()
-
-
 class KomacArgs(TypedDict, total=False):
     base_version: str
     release_date: str
@@ -29,6 +22,7 @@ class KomacArgs(TypedDict, total=False):
     release_notes_url: str
     owner: str
     repo: str
+    keep_notes_on_version_prefix: str
 
 
 def run_komac(identifier: str, version: str, urls: str | Sequence[str], args: KomacArgs = {}):
@@ -54,13 +48,16 @@ VERSION_REGEX = re.compile(r"\d+(?:\.\d+)+")
 class VersionData(TypedDict):
     version: str
     has_release_notes: bool
+    blocking_pr: int | None
 
 
 class Version:
+    SEP = re.compile(r"[.r]")
+
     def __init__(self, arg: str | tuple[int, ...]) -> None:
         if isinstance(arg, str):
             self.version = arg
-            self.value = tuple(map(int, arg.split(".")))
+            self.value = tuple(map(int, self.SEP.split(arg)))
         else:
             self.version = ".".join(map(str, arg))
             self.value = arg
@@ -88,3 +85,10 @@ class Version:
 
     def __repr__(self) -> str:
         return self.version
+
+
+def try_parse_version(version: str) -> Version | None:
+    try:
+        return Version(version)
+    except ValueError:
+        return None

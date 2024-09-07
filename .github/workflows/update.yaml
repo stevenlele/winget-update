@@ -13,11 +13,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Update packages
-        env:
-          GITHUB_TOKEN: ${{ secrets.TOKEN }}
-          KOMAC_FORK_OWNER: ${{ github.repository_owner }}
-          RUST_LOG: debug
+      - name: Setup environment
         run: |
           set -x
           wget -nv "https://github.com/$GITHUB_REPOSITORY/releases/latest/download/komac"
@@ -25,6 +21,12 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           pip3 install httpx rich ruamel.yaml
+      - name: Update packages
+        env:
+          GITHUB_TOKEN: ${{ secrets.TOKEN }}
+          KOMAC_FORK_OWNER: ${{ github.repository_owner }}
+          RUST_LOG: debug
+        run: |
           python3 main.py
       - name: Push changes
         if: always()
