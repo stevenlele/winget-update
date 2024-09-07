@@ -93,7 +93,7 @@ def update(
 
     message = f"{message_prefix}: {identifier} version {version}"
     if owner_open_pr:
-        _create_commit(ref["name"], message, path, manifests)
+        _create_commit(ref["name"], message, path, manifests, sha)
         print("[green]✓ Updated existing pull request[/]")
         return None
 
@@ -103,7 +103,7 @@ def update(
     branch_name = f"{identifier}-{version}"
     print(f"Creating new branch {branch_name!r}...")
     _create_branch(branch_name, sha)
-    commit_url = _create_commit(branch_name, message, path, manifests)
+    commit_url = _create_commit(branch_name, message, path, manifests, sha)
     print(f"Created commit: {commit_url}")
     if True:
         print("Skipped creating PR")
@@ -279,6 +279,7 @@ def _create_commit(
     commit_message: str,
     path: str,
     manifests: Manifests,
+    head_sha: str,
 ) -> str:
     response = _graphql(
         """mutation CreateCommit($input: CreateCommitOnBranchInput!) {"""
@@ -297,7 +298,7 @@ def _create_commit(
                         for filename, content in manifests.items()
                     ]
                 },
-                "expectedHeadOid": "",
+                "expectedHeadOid": head_sha,
             }
         },
     )
