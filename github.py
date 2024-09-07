@@ -229,6 +229,8 @@ def _get_directory(sha: str, path: str) -> dict:
 
 def _get_manifests(sha: str, path: str) -> Manifests:
     response = _get_directory(sha, path)
+    if response["repository"]["object"] is None:
+        return {}
     return {
         entry["name"]: entry["object"]["text"]
         for entry in response["repository"]["object"]["entries"]
