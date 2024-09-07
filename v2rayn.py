@@ -28,7 +28,7 @@ def main():
     update(
         "2dust.v2rayN",
         f"{new_version}",
-        url,
+        [{"Architecture": "x64", "InstallerUrl": url}],
         {
             "owner": "2dust",
             "repo": "v2rayN",
