@@ -9,7 +9,7 @@ from common import CLIENT
 
 
 def main():
-    rich.reconfigure(force_terminal=True)
+    rich.reconfigure(force_terminal=True, width=4096)
     exceptions = []
     github.check_repo_and_delete_merged_branches()
     for mod in (wetype, discord, v2rayn):
