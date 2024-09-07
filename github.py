@@ -98,9 +98,7 @@ def update(
         print("[green]✓ Updated existing pull request[/]")
         return None
 
-    if not _owner_repo_id:
-        print("Creating fork...")
-        _create_fork()
+    create_fork()
     branch_name = f"{identifier}-{version}"
     print(f"Creating new branch {branch_name!r}...")
     _create_branch(branch_name, sha)
@@ -191,8 +189,11 @@ def _create_branch(name: str, sha: str):
     _should_delete_fork = False
 
 
-def _create_fork():
+def create_fork() -> None:
     global _owner_repo_id
+    if _owner_repo_id:
+        return
+    print("Creating fork...")
     _owner_repo_id = _rest(
         "POST", f"/repos/{MICROSOFT_WINGET_PKGS}/forks", json={"default_branch_only": True}
     )["node_id"]

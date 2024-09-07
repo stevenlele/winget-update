@@ -1,7 +1,7 @@
 from collections.abc import Callable, Sequence
 
 from common import Version, run_komac
-from github import get_gh_api, update
+from github import create_fork, get_gh_api, update
 from manifest import Installer
 
 
@@ -38,9 +38,7 @@ def main(
         filename = installer["InstallerUrl"].format(version=version)
         installer["InstallerUrl"] = urls[filename]
 
-    if use_komac:
-        run_komac(identifier, version, [installer["InstallerUrl"] for installer in installers])
-    else:
+    if not use_komac:
         release_notes: str = release["body"]
         if transform_release_notes is not None:
             release_notes = transform_release_notes(release_notes)
@@ -56,6 +54,9 @@ def main(
                 "release_notes_locale": locale,
             },
         )
+    else:
+        create_fork()
+        run_komac(identifier, version, [installer["InstallerUrl"] for installer in installers])
 
     with open(f"{moniker}.txt", "w") as f:
         f.write(version)
