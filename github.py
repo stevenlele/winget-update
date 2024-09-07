@@ -297,7 +297,7 @@ def _create_commit(
                         for filename, content in manifests.items()
                     ]
                 },
-                # expectedHeadOid: str
+                "expectedHeadOid": "",
             }
         },
     )
