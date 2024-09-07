@@ -1,6 +1,5 @@
 import re
 import subprocess
-from base64 import b64encode
 from datetime import date
 from sys import stderr, stdout
 from typing import Sequence, TypedDict
@@ -15,32 +14,24 @@ def get(url: str):
     return response.text
 
 
-class KomacArgs(TypedDict, total=False):
+class UpdateArgs(TypedDict, total=False):
     base_version: str
     release_date: date
     release_notes: str
     release_notes_locale: str
     release_notes_url: str
-    owner: str
-    repo: str
+    owner_and_repo: str
     keep_notes_on_version_prefix: str
 
 
-def run_komac(identifier: str, version: str, urls: str | Sequence[str], args: KomacArgs = {}):
+def run_komac(identifier: str, version: str, urls: str | Sequence[str]):
     command = ["./komac", "update", identifier, "-v", version, "--submit", "-u"]
     if isinstance(urls, str):
         command.append(urls)
     else:
         command.extend(urls)
-    for key, value in args.items():
-        command.append(f"--{key.replace('_', '-')}")
-        command.append(f"-- {value}" if (value := str(value)).startswith("-") else value)
     print("$", subprocess.list2cmdline(command), flush=True)
     subprocess.run(command, check=True, stdout=stdout, stderr=stderr)
-
-
-def base64_encode(text: str) -> str:
-    return b64encode(text.encode()).decode()
 
 
 VERSION_REGEX = re.compile(r"\d+(?:\.\d+)+")

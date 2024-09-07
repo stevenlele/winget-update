@@ -1,6 +1,6 @@
 import json
 
-from common import *
+from common import VERSION_REGEX, Version, get, run_komac
 
 
 def main():

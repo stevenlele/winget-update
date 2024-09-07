@@ -1,6 +1,6 @@
 import json
 
-from common import *
+from common import get
 from github import update
 
 

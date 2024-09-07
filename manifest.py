@@ -4,7 +4,7 @@ from datetime import datetime
 from difflib import unified_diff
 from hashlib import sha256
 from io import StringIO
-from typing import TypedDict
+from typing import Required, TypedDict
 
 from pangu import spacing
 from rich import print
@@ -12,7 +12,7 @@ from rich.syntax import Syntax
 from ruamel.yaml import YAML, CommentedMap, CommentToken
 from ruamel.yaml.scalarstring import LiteralScalarString
 
-from common import CLIENT, KomacArgs
+from common import CLIENT, UpdateArgs
 
 type Manifests = dict[str, str]
 
@@ -21,19 +21,21 @@ class Installer(TypedDict, total=False):
     Architecture: str
     InstallerType: str
     Scope: str
-    InstallerUrl: str
+    InstallerUrl: Required[str]
     InstallerSha256: str
     UpgradeBehavior: str
 
 
-def fill_in_release_notes(manifests: Manifests, identifier: str, args: KomacArgs) -> bool:
+def fill_in_release_notes(manifests: Manifests, identifier: str, args: UpdateArgs) -> bool:
     assert (notes := args.get("release_notes"))
     assert (locale := args.get("release_notes_locale"))
 
     notes = notes.strip().replace("\r\n", "\n")
-    if (owner := args.get("owner")) and (repo := args.get("repo")):
+    if owner_and_repo := args.get("owner_and_repo"):
         notes = re.sub(
-            rf"https://github\.com/{owner}/{repo}/(?:issues|pull|discussions)/(\d+)", r"#\1", notes
+            rf"https://github\.com/{owner_and_repo}/(?:issues|pull|discussions)/(\d+)",
+            r"#\1",
+            notes,
         )
         notes = re.sub(
             r"https://github\.com/([-\w]+)/([-\w]+)/(?:issues|pull|discussions)/(\d+)",
@@ -68,7 +70,7 @@ def update_new_version(
     identifier: str,
     version: str,
     new_installers: Sequence[Installer],
-    args: KomacArgs,
+    args: UpdateArgs,
 ):
     original = manifests.copy()
 
@@ -94,11 +96,11 @@ def update_new_version(
             hashes = {}
 
             for installer, new_installer in zip(installers, new_installers):
-                installer = installer.copy()
-                del installer["InstallerUrl"], installer["InstallerSha256"]
-                new_installer = new_installer.copy()
-                hashes[new_installer.pop("InstallerUrl")] = None
-                assert installer.items() & new_installer.items() == new_installer.items()
+                _installer = {**installer}
+                del _installer["InstallerUrl"], _installer["InstallerSha256"]
+                _new_installer = {**new_installer}
+                hashes[_new_installer.pop("InstallerUrl")] = None
+                assert _installer.items() & _new_installer.items() == _new_installer.items()
 
             for url in hashes:
                 print("Downloading", url)
@@ -118,8 +120,7 @@ def update_new_version(
                 hashes[url] = h.hexdigest().upper()
 
             for installer, new_installer in zip(installers, new_installers):
-                assert (url := new_installer.get("InstallerUrl"))
-                installer["InstallerUrl"] = url
+                installer["InstallerUrl"] = (url := new_installer["InstallerUrl"])
                 installer["InstallerSha256"] = hashes[url]
 
             doc["ReleaseDate"] = args.get("release_date", inferred_date)

@@ -3,10 +3,11 @@ import xml.etree.ElementTree as ET
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from common import *
+from common import VERSION_REGEX, UpdateArgs, Version, get
 from github import update
 
 
+# TODO support adding release notes OR release notes URL
 def main():
     with open("wetype.txt") as f:
         old_version = Version(f.read())
@@ -29,7 +30,7 @@ def main():
     try:
         release = next(r for r in changelog if r["platform"] == 4 and r["version"] == short_version)
     except StopIteration:
-        args: KomacArgs = {
+        args: UpdateArgs = {
             "release_notes_locale": "zh-CN",
             "keep_notes_on_version_prefix": f"{short_version}.",
         }
@@ -42,7 +43,7 @@ def main():
             if (text := element.text) and (text := text.strip()) and text != "该版本主要更新"
         )
 
-        args: KomacArgs = {
+        args: UpdateArgs = {
             "release_notes": release_notes,
             "release_notes_locale": "zh-CN",
             "release_notes_url": f"https://z.weixin.qq.com/web/change-log/{release['id']}",

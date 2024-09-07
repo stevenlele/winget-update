@@ -1,3 +1,4 @@
+from base64 import b64encode
 from os import getenv
 from os.path import expandvars
 from pprint import pformat
@@ -5,8 +6,8 @@ from typing import Any, Callable, Literal, Sequence, TypedDict
 
 from rich import print
 
-from common import *
-from manifest import *
+from common import CLIENT, UpdateArgs, Version, try_parse_version
+from manifest import Installer, Manifests, fill_in_release_notes, update_new_version
 
 assert (_TOKEN := getenv("GITHUB_TOKEN"))
 HEADERS = {"Authorization": f"token {_TOKEN}"}
@@ -29,8 +30,8 @@ def get_gh_api(url: str) -> Any:
 def update(
     identifier: str,
     version: str,
-    urls: Sequence[Installer],
-    args: KomacArgs = {},
+    installers: Sequence[Installer],
+    args: UpdateArgs = {},
 ) -> PRToWait | None:
     print(f"Updating {identifier!r} to {version}", end="")
     if "release_notes" in args:
@@ -80,7 +81,7 @@ def update(
         assert refs
         print("There's no manifest of this version, performing update...")
         manifests = _get_base_manifests(identifier, args, sha=sha)
-        update_new_version(manifests, identifier, version, urls, args)
+        update_new_version(manifests, identifier, version, installers, args)
         message_prefix = "New version"
     elif not fill_in_release_notes(manifests, identifier, args):
         print("This branch is up-to-date, we'll mark this update as done")
@@ -247,7 +248,7 @@ def _get_path(identifier: str, version: str | None = None) -> str:
     return base if version is None else f"{base}/{version}"
 
 
-def _get_base_manifests(identifier: str, args: KomacArgs, *, sha: str) -> Manifests:
+def _get_base_manifests(identifier: str, args: UpdateArgs, *, sha: str) -> Manifests:
     if (base_version := args.get("base_version")) and (
         manifests := _get_manifests(sha, _get_path(identifier, base_version))
     ):
@@ -270,6 +271,10 @@ def _get_base_manifests(identifier: str, args: KomacArgs, *, sha: str) -> Manife
     return manifests
 
 
+def _base64_encode(text: str) -> str:
+    return b64encode(text.encode()).decode()
+
+
 def _create_commit(
     branch_name: str,
     commit_message: str,
@@ -290,7 +295,7 @@ def _create_commit(
                 "message": {"headline": commit_message},
                 "fileChanges": {
                     "additions": [
-                        {"path": f"{path}/{filename}", "contents": base64_encode(content)}
+                        {"path": f"{path}/{filename}", "contents": _base64_encode(content)}
                         for filename, content in manifests.items()
                     ]
                 },
