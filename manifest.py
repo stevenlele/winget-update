@@ -99,7 +99,7 @@ def update_new_version(
             for url in hashes:
                 print("Downloading", url)
                 with CLIENT.stream("GET", url) as response:
-                    assert response.status_code == 200
+                    assert response.is_success
                     last_modified = datetime.strptime(
                         response.headers["Last-Modified"], "%a, %d %b %Y %H:%M:%S %Z"
                     ).strftime("%Y-%m-%d")

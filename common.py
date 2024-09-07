@@ -6,7 +6,7 @@ from typing import Sequence, TypedDict
 
 import httpx
 
-CLIENT = httpx.Client()
+CLIENT = httpx.Client(follow_redirects=True)
 
 
 def get(url: str):
