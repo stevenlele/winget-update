@@ -76,7 +76,7 @@ def update(
         sha = refs[0]["object"]["sha"]
 
     path = _get_path(identifier, version)
-    message_prefix = "Release notes"
+    message_prefix = "ReleaseNotes"
     if not (manifests := _get_manifests(sha, path)):
         assert refs
         print("There's no manifest of this version, performing update...")
