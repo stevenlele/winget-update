@@ -190,11 +190,11 @@ def _insert_property(text: str, key: str, value: object) -> str | None:
             "Moniker",
             "Tags",
             "Agreements",
-            "Documentations",
             "ReleaseNotes",
             "ReleaseNotesUrl",
             "PurchaseUrl",
             "InstallationNotes",
+            "Documentations",
             "ManifestType",
             "ManifestVersion",
         )

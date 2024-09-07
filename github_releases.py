@@ -24,7 +24,7 @@ def main(
     else:
         release = get_gh_api(f"/repos/{owner_and_repo}/releases/latest")
 
-    version: str = release["tag_name"].remove_prefix("v")
+    version: str = release["tag_name"].removeprefix("v")
     if (new_version := Version(version)) == old_version:
         return
 
