@@ -7,6 +7,7 @@ on:
 
 jobs:
   update:
+    name: Update packages
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
