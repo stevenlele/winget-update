@@ -1,9 +1,10 @@
 import json
+import xml.etree.ElementTree as ET
 from datetime import datetime
 from zoneinfo import ZoneInfo
-import xml.etree.ElementTree as ET
 
 from common import *
+from github import update
 
 
 def main():
@@ -30,7 +31,7 @@ def main():
     except StopIteration:
         args: KomacArgs = {
             "release_notes_locale": "zh-CN",
-            "keep_notes_on_version_prefix": f"{short_version}."
+            "keep_notes_on_version_prefix": f"{short_version}.",
         }
     else:
         release_date = datetime.fromtimestamp(release["release_date"], ZoneInfo("Asia/Shanghai"))
@@ -42,13 +43,21 @@ def main():
         )
 
         args: KomacArgs = {
-            "release_notes": base64_encode(release_notes),
+            "release_notes": release_notes,
             "release_notes_locale": "zh-CN",
             "release_notes_url": f"https://z.weixin.qq.com/web/change-log/{release['id']}",
-            "release_date": f"{release_date:%Y-%m-%d}",
+            "release_date": release_date.date(),
         }
 
-    run_komac("Tencent.WeType", str(new_version), url, args)
+    update(
+        "Tencent.WeType",
+        str(new_version),
+        [
+            {"Architecture": "x64", "InstallerUrl": url},
+            {"Architecture": "arm64", "InstallerUrl": url},
+        ],
+        args,
+    )
 
     with open("wetype.txt", "w") as f:
         f.write(str(new_version))

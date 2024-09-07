@@ -105,9 +105,6 @@ def update(
     _create_branch(branch_name, sha)
     commit_url = _create_commit(branch_name, message, path, manifests, sha)
     print(f"Created commit: {commit_url}")
-    if True:
-        print("Skipped creating PR")
-        return None
     pr_url = _create_pr(message, branch_name)
     print(f"Created PR: {pr_url}")
     return None

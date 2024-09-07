@@ -38,7 +38,5 @@ def main():
         },
     )
 
-    return
-
     with open("v2rayn.txt", "w") as f:
         f.write(str(new_version))

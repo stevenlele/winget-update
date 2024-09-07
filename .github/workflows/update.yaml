@@ -16,8 +16,6 @@ jobs:
       - name: Setup environment
         run: |
           set -x
-          wget -nv "https://github.com/$GITHUB_REPOSITORY/releases/latest/download/komac"
-          chmod +x komac
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           pip3 install httpx rich ruamel.yaml pangu

@@ -1,6 +1,7 @@
 import json
 
 from common import *
+from github import update
 
 
 def main():
@@ -14,10 +15,11 @@ def main():
         assert triple[:2] == [1, 0]
         assert (new_version := triple[2]) >= old_version
         if new_version > old_version:
-            run_komac(
+            url = f"https://dl.discordapp.net/distro/app/stable/win/{arch}/1.0.{new_version}/DiscordSetup.exe"
+            update(
                 "Discord.Discord",
                 f"1.0.{new_version}",
-                f"https://dl.discordapp.net/distro/app/stable/win/{arch}/1.0.{new_version}/DiscordSetup.exe",
+                [{"Architecture": arch, "InstallerUrl": url}],
                 {"base_version": f"1.0.{old_version}"},
             )
             versions[arch] = new_version
