@@ -43,7 +43,8 @@ def fill_in_release_notes(manifests: Manifests, identifier: str, args: UpdateArg
             notes,
         )
         notes = re.sub(r"(?:https://github\.com/.+?/commit/)?[0-9a-z]{40}", "", notes)
-    notes = spacing(notes)
+    if locale == "zh-CN":
+        notes = spacing(notes)
     notes = re.sub(r" +$", "", notes, flags=re.MULTILINE)
 
     if not notes:
