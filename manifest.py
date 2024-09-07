@@ -1,12 +1,14 @@
 import re
 from collections.abc import Sequence
 from datetime import datetime
+from difflib import unified_diff
 from hashlib import sha256
 from io import StringIO
 from typing import TypedDict
 
 from pangu import spacing
 from rich import print
+from rich.syntax import Syntax
 from ruamel.yaml import YAML, CommentedMap, CommentToken
 from ruamel.yaml.scalarstring import LiteralScalarString
 
@@ -68,9 +70,11 @@ def update_new_version(
     new_installers: Sequence[Installer],
     args: KomacArgs,
 ):
+    original = manifests.copy()
+
     for filename, text in manifests.items():
         text, newline = _normalize_crlf(text)
-        yaml = YAML()
+        yaml = _get_yaml()
         doc: CommentedMap = yaml.load(text)
 
         top_comments: list[CommentToken] = doc.ca.comment[1]  # type: ignore
@@ -102,7 +106,7 @@ def update_new_version(
                     assert response.is_success
                     last_modified = datetime.strptime(
                         response.headers["Last-Modified"], "%a, %d %b %Y %H:%M:%S %Z"
-                    ).strftime("%Y-%m-%d")
+                    ).date()
                     if inferred_date is None:
                         inferred_date = last_modified
                     else:
@@ -134,6 +138,21 @@ def update_new_version(
     if args.get("release_notes"):
         fill_in_release_notes(manifests, identifier, args)
 
+    _print_manifests_diff(original, manifests)
+
+
+def _print_manifests_diff(original: Manifests, manifests: Manifests) -> None:
+    for filename in original:
+        diff = "".join(
+            unified_diff(
+                original[filename].splitlines(True),
+                manifests[filename].splitlines(True),
+                f"{filename} (old)",
+                f"{filename} (new)",
+            )
+        )
+        print(Syntax(diff, "diff"))
+
 
 def _normalize_crlf(text: str) -> tuple[str, str]:
     if "\r\n" not in text:
@@ -143,16 +162,16 @@ def _normalize_crlf(text: str) -> tuple[str, str]:
     return text.replace("\r\n", "\n"), "\r\n"
 
 
-def _insert_property(text: str, key: str, value: str) -> str | None:
+def _insert_property(text: str, key: str, value: object) -> str | None:
     text, newline = _normalize_crlf(text)
     text, placeholders = re.subn(rf"^# {key}:\s*$", f"{key}: 0", text, flags=re.MULTILINE)
     if placeholders > 1:
         raise RuntimeError("Illegal document")
 
-    if "\n" in value:
+    if isinstance(value, str) and "\n" in value:
         value = LiteralScalarString(value)
 
-    yaml = YAML()
+    yaml = _get_yaml()
     doc: CommentedMap = yaml.load(text)
 
     if placeholders:
@@ -189,3 +208,10 @@ def _insert_property(text: str, key: str, value: str) -> str | None:
 
     yaml.dump(doc, s := StringIO(newline=newline))
     return s.getvalue()
+
+
+def _get_yaml() -> YAML:
+    yaml = YAML()
+    yaml.preserve_quotes = True
+    yaml.width = 4096
+    return yaml

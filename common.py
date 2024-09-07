@@ -1,6 +1,7 @@
 import re
 import subprocess
 from base64 import b64encode
+from datetime import date
 from sys import stderr, stdout
 from typing import Sequence, TypedDict
 
@@ -16,7 +17,7 @@ def get(url: str):
 
 class KomacArgs(TypedDict, total=False):
     base_version: str
-    release_date: str
+    release_date: date
     release_notes: str
     release_notes_locale: str
     release_notes_url: str
