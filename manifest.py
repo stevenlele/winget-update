@@ -31,6 +31,8 @@ def fill_in_release_notes(manifests: Manifests, identifier: str, args: UpdateArg
     assert (locale := args.get("release_notes_locale"))
 
     notes = notes.strip().replace("\r\n", "\n")
+    notes = re.sub(r"\[([^\]]+?)\]\(\S+?\)", r"\1", notes)  # links
+    notes = re.sub(r"(^|\n)#+ (.+?)\n+", r"\1\2\n", notes)  # headings
     if owner_and_repo := args.get("owner_and_repo"):
         notes = re.sub(
             rf"https://github\.com/{owner_and_repo}/(?:issues|pull|discussions)/(\d+)",
