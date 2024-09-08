@@ -217,6 +217,15 @@ def _insert_property(text: str, key: str, value: object, *, force: bool = False)
 
         doc.insert(after[0], key, value)
 
+    token: CommentToken
+    if (
+        isinstance(value, LiteralScalarString)
+        and (post_comments := doc.ca.items.get(key))
+        and (token := post_comments[2])
+        and token.value.startswith("\n")
+    ):
+        token.value = token.value.lstrip()
+
     yaml.dump(doc, s := StringIO(newline=newline))
     return s.getvalue()
 
