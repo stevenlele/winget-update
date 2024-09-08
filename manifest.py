@@ -79,6 +79,7 @@ def update_new_version(
     args: UpdateArgs,
 ):
     original = manifests.copy()
+    locale = args.get("release_notes_locale")
 
     for filename, text in manifests.items():
         text, newline = _normalize_crlf(text)
@@ -130,9 +131,7 @@ def update_new_version(
                 installer["InstallerSha256"] = hashes[url]
 
             doc["ReleaseDate"] = args.get("release_date", inferred_date)
-        elif (locale := args.get("release_notes_locale")) and filename.endswith(
-            f".locale.{locale}.yaml"
-        ):
+        elif locale and filename.endswith(f".locale.{locale}.yaml"):
             if (prefix := args.get("keep_notes_on_version_prefix")) and version.startswith(prefix):
                 pass
             else:
