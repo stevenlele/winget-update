@@ -20,7 +20,7 @@ MICROSOFT_WINGET_PKGS = f"{MICROSOFT}/{WINGET_PKGS}"
 DEFAULT_BRANCH = "master"
 
 
-type PRToWait = int
+type PRNumber = int
 
 
 def get_gh_api(url: str) -> Any:
@@ -32,7 +32,7 @@ def update(
     version: str,
     installers: Sequence[Installer],
     args: UpdateArgs = {},
-) -> PRToWait | None:
+) -> PRNumber | None:
     print(f"Updating {identifier!r} to {version}", end="")
     if "release_notes" in args:
         print(" with release notes...")

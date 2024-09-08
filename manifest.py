@@ -51,11 +51,16 @@ def fill_in_release_notes(manifests: Manifests, identifier: str, args: UpdateArg
         return False
 
     manifest = manifests[f"{identifier}.locale.{locale}.yaml"]
-    manifest = _insert_property(manifest, "ReleaseNotes", notes)
-    if not manifest:
-        return False
-    if url := args.get("release_notes_url"):
-        manifest = _insert_property(manifest, "ReleaseNotesUrl", url) or manifest
+    if args.get("is_url_important"):
+        assert (url := args.get("release_notes_url"))
+        if not (manifest := _insert_property(manifest, "ReleaseNotesUrl", url)):
+            return False
+        assert (manifest := _insert_property(manifest, "ReleaseNotes", notes, force=True))
+    else:
+        if not (manifest := _insert_property(manifest, "ReleaseNotes", notes)):
+            return False
+        if url := args.get("release_notes_url"):
+            manifest = _insert_property(manifest, "ReleaseNotesUrl", url) or manifest
     manifests[f"{identifier}.locale.{locale}.yaml"] = manifest
 
     if date := args.get("release_date"):
@@ -164,7 +169,7 @@ def _normalize_crlf(text: str) -> tuple[str, str]:
     return text.replace("\r\n", "\n"), "\r\n"
 
 
-def _insert_property(text: str, key: str, value: object) -> str | None:
+def _insert_property(text: str, key: str, value: object, *, force: bool = False) -> str | None:
     text, newline = _normalize_crlf(text)
     text, placeholders = re.subn(rf"^# {key}:\s*$", f"{key}: 0", text, flags=re.MULTILINE)
     if placeholders > 1:
@@ -180,7 +185,10 @@ def _insert_property(text: str, key: str, value: object) -> str | None:
         assert doc[key] == 0
         doc[key] = value
     elif key in doc:
-        return None
+        if force:
+            doc[key] = value
+        else:
+            return None
     elif key == "ReleaseDate":
         doc[key] = value
     else:

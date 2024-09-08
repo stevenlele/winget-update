@@ -1,29 +1,17 @@
 import json
+from typing import override
 
-from common import CLIENT, UpdateArgs, Version, VersionData, get
-from github import get_gh_api, is_pr_open, update
+from common import CLIENT, UpdateArgs, Version, get
+from github import get_gh_api, update
 from manifest import Installer
+from with_release_notes import WithReleaseNotes
 
 
 def main():
-    with open("telegram.json") as f:
-        old_version_data: VersionData = json.load(f)
+    Telegram().main()
 
-    if (blocking_pr := old_version_data["blocking_pr"]) and is_pr_open(blocking_pr):
-        print(f"Telegram: PR #{blocking_pr} is still open")
-        return
 
-    old_version = Version(old_version_data["version"])
-
-    new_version = get_latest_version()
-    github_release = get_github_release(new_version)
-
-    if old_version == new_version:
-        if old_version_data["has_release_notes"] or not github_release:
-            return
-    else:
-        assert new_version > old_version
-
+def _get_installers(new_version: str):
     installers: list[Installer] = [
         {
             "Architecture": "x64",
@@ -53,6 +41,10 @@ def main():
 
     assert all(CLIENT.head(installer["InstallerUrl"]).is_success for installer in installers)
 
+    return installers
+
+
+def _get_update_args(github_release: dict | None):
     if github_release:
         args: UpdateArgs = {
             "owner_and_repo": "telegramdesktop/tdesktop",
@@ -62,19 +54,30 @@ def main():
         }
     else:
         args = {"release_notes_locale": "en-US"}
+    return args
 
-    blocking_pr = update("Telegram.TelegramDesktop", f"{new_version}", installers, args)
 
-    with open("telegram.json", "w") as f:
-        if blocking_pr is None:
-            new_version_data: VersionData = {
-                "version": f"{new_version}",
-                "has_release_notes": bool(github_release),
-                "blocking_pr": None,
-            }
-        else:
-            new_version_data = {**old_version_data, "blocking_pr": blocking_pr}
-        json.dump(new_version_data, f, separators=(",", ":"))
+class Telegram(WithReleaseNotes):
+    @override
+    def __init__(self) -> None:
+        super().__init__(__name__, "Telegram.TelegramDesktop")
+
+    @override
+    def get_latest_version(self) -> Version:
+        return get_latest_version()
+
+    @override
+    def has_release_notes(self) -> bool:
+        self.github_release = (github_releases := _get_github_release(self.version))
+        return github_releases is not None
+
+    @override
+    def get_installers(self) -> list[Installer]:
+        return _get_installers(self.version)
+
+    @override
+    def get_update_args(self) -> UpdateArgs:
+        return _get_update_args(self.github_release)
 
 
 def get_latest_version() -> Version:
@@ -96,7 +99,7 @@ def get_latest_version() -> Version:
     return Version((major, minor, patch))
 
 
-def get_github_release(latest_version: Version) -> dict | None:
+def _get_github_release(latest_version: str) -> dict | None:
     releases = get_gh_api("https://api.github.com/repos/telegramdesktop/tdesktop/releases")
     tag_name = f"v{latest_version}"
     try:
@@ -104,5 +107,7 @@ def get_github_release(latest_version: Version) -> dict | None:
     except StopIteration:
         return None
     for i in range(index):
+        if releases[i]["prerelease"]:
+            continue
         assert all("Windows" not in asset["label"] for asset in releases[i]["assets"])
     return releases[index]

@@ -22,6 +22,7 @@ class UpdateArgs(TypedDict, total=False):
     release_notes_url: str
     owner_and_repo: str
     keep_notes_on_version_prefix: str
+    is_url_important: bool
 
 
 def run_komac(identifier: str, version: str, urls: str | Sequence[str]):
@@ -35,12 +36,6 @@ def run_komac(identifier: str, version: str, urls: str | Sequence[str]):
 
 
 VERSION_REGEX = re.compile(r"\d+(?:\.\d+)+")
-
-
-class VersionData(TypedDict):
-    version: str
-    has_release_notes: bool
-    blocking_pr: int | None
 
 
 class Version:
