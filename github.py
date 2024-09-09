@@ -2,6 +2,7 @@ from base64 import b64encode
 from os import getenv
 from os.path import expandvars
 from pprint import pformat
+from time import sleep
 from typing import Any, Callable, Literal, Sequence, TypedDict
 
 from rich import print
@@ -202,6 +203,13 @@ def create_fork() -> None:
         f"/repos/{OWNER}/{WINGET_PKGS}",
         json={"has_issues": False, "has_wiki": False, "has_projects": False},
     )
+    _rest(
+        "PUT",
+        f"/repos/{OWNER}/{WINGET_PKGS}/actions/permissions",
+        json={"enabled": False},
+    )
+    print("Sleeping 5 seconds to let the fork settle...")
+    sleep(5)
 
 
 def delete_fork_if_should():
