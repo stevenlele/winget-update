@@ -87,7 +87,7 @@ def update(
     elif not fill_in_release_notes(manifests, identifier, args):
         print("This branch is up-to-date, we'll mark this update as done")
         return None
-    elif other_open_pr:
+    elif other_open_pr and not owner_open_pr:
         print("We need to wait until this PR gets merged")
         return other_open_pr["number"]
 
