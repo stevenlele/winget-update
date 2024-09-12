@@ -86,15 +86,10 @@ def get_latest_version() -> Version:
     win64_stable = response["win64"]["stable"]
     win32_stable = response["win"]["stable"]
 
-    assert (
-        (version_code := win64_stable["released"])
-        == win64_stable["testing"]
-        == win32_stable["released"]
-        == win32_stable["testing"]
-    )
+    assert (version_code := win64_stable["released"]) == win32_stable["released"]
 
-    major, minor_patch = divmod(int(version_code), 1_000_000)
-    minor, patch = divmod(minor_patch, 1_000)
+    major_minor, patch = divmod(int(version_code), 1_000)
+    major, minor = divmod(major_minor, 1_000)
 
     return Version((major, minor, patch))
 
