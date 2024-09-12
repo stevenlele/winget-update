@@ -5,6 +5,7 @@ from pprint import pformat
 from time import sleep
 from typing import Any, Callable, Literal, Sequence, TypedDict
 
+import httpx
 from rich import print
 
 from common import CLIENT, UpdateArgs, Version, try_parse_version
@@ -115,7 +116,14 @@ def _rest(method: str, url: str, *, json: dict | None = None) -> Any:
         url = f"https://api.github.com{url}"
     else:
         assert url.startswith("https://api.github.com")
-    response = CLIENT.request(method, url, json=json, headers=HEADERS)
+    for i in range(2, -1, -1):
+        try:
+            response = CLIENT.request(method, url, json=json, headers=HEADERS)
+            break
+        except httpx.ReadTimeout:
+            if i:
+                continue
+            raise
     if response.status_code == 204:
         assert not response.content
         return None
