@@ -26,7 +26,9 @@ class Installer(TypedDict, total=False):
     UpgradeBehavior: str
 
 
-def fill_in_release_notes(manifests: Manifests, identifier: str, args: UpdateArgs) -> bool:
+def fill_in_release_notes(
+    manifests: Manifests, identifier: str, args: UpdateArgs, *, force: bool = False
+) -> bool:
     assert (notes := args.get("release_notes"))
     assert (locale := args.get("release_notes_locale"))
 
@@ -56,14 +58,14 @@ def fill_in_release_notes(manifests: Manifests, identifier: str, args: UpdateArg
     manifest = manifests[f"{identifier}.locale.{locale}.yaml"]
     if args.get("is_url_important"):
         assert (url := args.get("release_notes_url"))
-        if not (manifest := _insert_property(manifest, "ReleaseNotesUrl", url)):
+        if not (manifest := _insert_property(manifest, "ReleaseNotesUrl", url, force=force)):
             return False
         assert (manifest := _insert_property(manifest, "ReleaseNotes", notes, force=True))
     else:
-        if not (manifest := _insert_property(manifest, "ReleaseNotes", notes)):
+        if not (manifest := _insert_property(manifest, "ReleaseNotes", notes, force=force)):
             return False
         if url := args.get("release_notes_url"):
-            manifest = _insert_property(manifest, "ReleaseNotesUrl", url) or manifest
+            manifest = _insert_property(manifest, "ReleaseNotesUrl", url, force=force) or manifest
     manifests[f"{identifier}.locale.{locale}.yaml"] = manifest
 
     if date := args.get("release_date"):
@@ -134,8 +136,10 @@ def update_new_version(
                 installer["InstallerSha256"] = hashes[url]
 
             doc["ReleaseDate"] = args.get("release_date", inferred_date)
-        elif locale and filename.endswith(f".locale.{locale}.yaml"):
+        elif ".locale." in filename:
             if (prefix := args.get("keep_notes_on_version_prefix")) and version.startswith(prefix):
+                pass
+            elif filename.endswith(f".locale.{locale}.yaml") and args.get("release_notes"):
                 pass
             else:
                 doc.pop("ReleaseNotes", None)  # type: ignore
@@ -145,7 +149,7 @@ def update_new_version(
         manifests[filename] = s.getvalue()
 
     if args.get("release_notes"):
-        fill_in_release_notes(manifests, identifier, args)
+        fill_in_release_notes(manifests, identifier, args, force=True)
 
     _print_manifests_diff(original, manifests)
 
