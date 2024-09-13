@@ -7,6 +7,7 @@ def main():
     def transform(release_notes: str) -> str:
         release_notes = re.sub(r"^#+ Release Notes.*", "", release_notes)
         release_notes = re.sub(r"#+ Contributors.+", "", release_notes, flags=re.DOTALL)
+        release_notes = re.sub(r"#+ Install ruff .+", "", release_notes, flags=re.DOTALL)
         release_notes = re.sub(r"\\\[`(.+?)`\\\]", r"[\1]", release_notes)  # \[`module`\]
         release_notes = re.sub(r"`([A-Z]+\d+)`", r"\1", release_notes)  # rules
         return release_notes
