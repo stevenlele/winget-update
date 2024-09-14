@@ -85,4 +85,4 @@ class WeType(WithReleaseNotes):
 
     @override
     def get_update_args(self) -> UpdateArgs:
-        return _get_update_args(self.release, self.version.rpartition(".")[0])
+        return _get_update_args(self.release, self.old_version.rpartition(".")[0])

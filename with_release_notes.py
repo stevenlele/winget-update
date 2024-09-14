@@ -17,6 +17,7 @@ class _VersionData(TypedDict):
 
 class WithReleaseNotes(ABC):
     version: str
+    old_version: str
 
     def __init__(self, moniker: str, identifier: str) -> None:
         self.moniker = moniker
@@ -30,7 +31,8 @@ class WithReleaseNotes(ABC):
         if old_blocking_pr := old_version_data["blocking_pr"]:
             print(f"[bold red]{self.moniker}: Last update was blocked by PR #{old_blocking_pr}[/]")
 
-        old_version = Version(old_version_data["version"])
+        self.old_version = old_version_data["version"]
+        old_version = Version(self.old_version)
         assert (latest_version := self.get_latest_version()) >= old_version
         if (
             old_version == latest_version
