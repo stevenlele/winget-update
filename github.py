@@ -58,6 +58,9 @@ def update(
             else:
                 assert pr["headRef"] is None
         elif pr["state"] == "OPEN":
+            if pr["author"] == "john-preston":
+                print("Ignoring PR by john-preston")
+                continue
             assert other_open_pr is None
             other_open_pr = pr
 
