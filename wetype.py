@@ -42,19 +42,20 @@ def _get_update_args(release: dict | None, short_version: str):
             "keep_notes_on_version_prefix": f"{short_version}.",
         }
     else:
-        release_date = datetime.fromtimestamp(release["release_date"], ZoneInfo("Asia/Shanghai"))
+        # release_date = datetime.fromtimestamp(release["release_date"], ZoneInfo("Asia/Shanghai"))
 
         release_notes = "\n".join(
             text
             for element in ET.fromstring(f"<body>{release['content_html']}</body>")
             if (text := element.text) and (text := text.strip()) and text != "该版本主要更新"
         )
+        release_notes = release_notes.replace("」 ", "」")
 
         args: UpdateArgs = {
             "release_notes": release_notes,
             "release_notes_locale": "zh-CN",
             "release_notes_url": f"https://z.weixin.qq.com/web/change-log/{release['id']}",
-            "release_date": release_date.date(),
+            # "release_date": release_date.date(),
             "is_url_important": True,
         }
     return args
