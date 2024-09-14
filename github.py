@@ -1,4 +1,5 @@
 from base64 import b64encode
+from datetime import datetime
 from os import getenv
 from os.path import expandvars
 from pprint import pformat
@@ -104,7 +105,7 @@ def update(
         return None
 
     create_fork()
-    branch_name = f"{identifier}-{version}"
+    branch_name = f"{identifier}-{version}--{datetime.now():%Y%m%d-%H%M%S}"
     print(f"Creating new branch {branch_name!r}...")
     _create_branch(branch_name, sha)
     commit_url = _create_commit(branch_name, message, path, manifests, sha)
