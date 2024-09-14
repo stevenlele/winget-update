@@ -48,6 +48,7 @@ def main(
             version,
             installers,
             {
+                "base_version": f"{old_version}",
                 "owner_and_repo": owner_and_repo,
                 "release_notes": release_notes,
                 "release_notes_url": release["html_url"],

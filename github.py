@@ -34,7 +34,7 @@ def update(
     identifier: str,
     version: str,
     installers: Sequence[Installer],
-    args: UpdateArgs = {},
+    args: UpdateArgs = {"base_version": ""},
 ) -> PRNumber | None:
     print(f"Updating {identifier!r} to {version}", end="")
     if "release_notes" in args:
@@ -89,6 +89,10 @@ def update(
         manifests = _get_base_manifests(identifier, args, sha=sha)
         update_new_version(manifests, identifier, version, installers, args)
         message_prefix = "New version"
+    elif owner_open_pr and (base_version := args.get("base_version")) and version != base_version:
+        print("Repo info is rolled back, rerunning update...")
+        update_new_version(manifests, identifier, version, installers, args)
+        message_prefix = "New version (rerun)"
     elif not fill_in_release_notes(manifests, identifier, args):
         print("This branch is up-to-date, we'll mark this update as done")
         return None

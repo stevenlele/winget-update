@@ -2,7 +2,7 @@ import re
 import subprocess
 from datetime import date
 from sys import stderr, stdout
-from typing import Sequence, TypedDict
+from typing import Required, Sequence, TypedDict
 
 import httpx
 
@@ -15,7 +15,7 @@ def get(url: str):
 
 
 class UpdateArgs(TypedDict, total=False):
-    base_version: str
+    base_version: Required[str]
     release_date: date
     release_notes: str
     release_notes_locale: str

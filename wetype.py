@@ -35,11 +35,12 @@ def _get_release(new_version: str) -> dict | None:
     return release
 
 
-def _get_update_args(release: dict | None, short_version: str):
+def _get_update_args(release: dict | None, old_version: str):
     if not release:
         args: UpdateArgs = {
+            "base_version": old_version,
             "release_notes_locale": "zh-CN",
-            "keep_notes_on_version_prefix": f"{short_version}.",
+            "keep_notes_on_version_prefix": old_version.rpartition(".")[0] + ".",
         }
     else:
         # release_date = datetime.fromtimestamp(release["release_date"], ZoneInfo("Asia/Shanghai"))
@@ -52,6 +53,7 @@ def _get_update_args(release: dict | None, short_version: str):
         release_notes = release_notes.replace("」 ", "」")
 
         args: UpdateArgs = {
+            "base_version": old_version,
             "release_notes": release_notes,
             "release_notes_locale": "zh-CN",
             "release_notes_url": f"https://z.weixin.qq.com/web/change-log/{release['id']}",
@@ -85,4 +87,4 @@ class WeType(WithReleaseNotes):
 
     @override
     def get_update_args(self) -> UpdateArgs:
-        return _get_update_args(self.release, self.old_version.rpartition(".")[0])
+        return _get_update_args(self.release, self.old_version)

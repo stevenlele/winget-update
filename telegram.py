@@ -44,16 +44,17 @@ def _get_installers(new_version: str):
     return installers
 
 
-def _get_update_args(github_release: dict | None):
+def _get_update_args(github_release: dict | None, old_version: str):
     if github_release:
         args: UpdateArgs = {
+            "base_version": old_version,
             "owner_and_repo": "telegramdesktop/tdesktop",
             "release_notes": github_release["body"],
             "release_notes_url": github_release["html_url"],
             "release_notes_locale": "en-US",
         }
     else:
-        args = {"release_notes_locale": "en-US"}
+        args = {"base_version": old_version, "release_notes_locale": "en-US"}
     return args
 
 
@@ -77,7 +78,7 @@ class Telegram(WithReleaseNotes):
 
     @override
     def get_update_args(self) -> UpdateArgs:
-        return _get_update_args(self.github_release)
+        return _get_update_args(self.github_release, self.old_version)
 
 
 def get_latest_version() -> Version:
