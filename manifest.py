@@ -24,6 +24,7 @@ class Installer(TypedDict, total=False):
     InstallerUrl: Required[str]
     InstallerSha256: str
     UpgradeBehavior: str
+    InstallerLocale: str
 
 
 def fill_in_release_notes(
@@ -35,7 +36,7 @@ def fill_in_release_notes(
     notes = notes.strip().replace("\r\n", "\n")
     notes = re.sub(r"\[([^\]]+?)\]\(\S+?\)", r"\1", notes)  # links
     notes = re.sub(r"(^|\n)#+ (.+?)\n+", r"\1\2\n", notes)  # headings
-    notes = re.sub(r"(\*+)(.+?)\1", r"\2", notes)  # italics/bold
+    notes = re.sub(r"(\*{2,})([^*`\n]+?)\1", r"\2", notes)  # italics/bold
     if owner_and_repo := args.get("owner_and_repo"):
         notes = re.sub(
             rf"https://github\.com/{owner_and_repo}/(?:issues|pull|discussions)/(\d+)",
@@ -101,6 +102,11 @@ def update_new_version(
 
         if filename.endswith(".installer.yaml"):
             inferred_date = None
+
+            if args.get("override_old_installers"):
+                doc["Installers"] = [
+                    {**installer, "InstallerSha256": None} for installer in new_installers
+                ]
 
             installers: list[Installer] = doc["Installers"]
             assert len(installers) == len(new_installers)

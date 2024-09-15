@@ -2,6 +2,7 @@ import rich
 
 import discord
 import github
+import notepad4
 import oxipng
 import ruff
 import scc
@@ -15,7 +16,7 @@ def main():
     rich.reconfigure(force_terminal=True, width=4096)
     exceptions = []
     github.check_repo_and_delete_merged_branches()
-    for mod in (wetype, discord, v2rayn, telegram, oxipng, scc, ruff):
+    for mod in (wetype, discord, v2rayn, telegram, oxipng, scc, ruff, notepad4):
         try:
             mod.main()
         except Exception as e:

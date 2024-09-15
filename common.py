@@ -23,6 +23,7 @@ class UpdateArgs(TypedDict, total=False):
     owner_and_repo: str
     keep_notes_on_version_prefix: str
     is_url_important: bool
+    override_old_installers: bool
 
 
 def run_komac(identifier: str, version: str, urls: str | Sequence[str]):

@@ -1,8 +1,13 @@
 from collections.abc import Callable, Sequence
+from typing import Protocol
 
 from common import Version, run_komac
 from github import create_fork, get_gh_api, update
 from manifest import Installer
+
+
+class _PackageGetter(Protocol):
+    def __call__(self, version: str, urls: dict[str, str]) -> dict[str, Sequence[Installer]]: ...
 
 
 def main(
@@ -15,6 +20,7 @@ def main(
     pre_release: bool = False,
     transform_release_notes: Callable[[str], str] | None = None,
     use_komac: bool = False,
+    with_multiple_packages: _PackageGetter | None = None,
 ):
     with open(f"{moniker}.txt") as f:
         old_version = Version(f.read())
@@ -43,18 +49,25 @@ def main(
         if transform_release_notes is not None:
             release_notes = transform_release_notes(release_notes)
 
-        update(
-            identifier,
-            version,
-            installers,
-            {
-                "base_version": f"{old_version}",
-                "owner_and_repo": owner_and_repo,
-                "release_notes": release_notes,
-                "release_notes_url": release["html_url"],
-                "release_notes_locale": locale,
-            },
-        )
+        if with_multiple_packages is None:
+            packages = {identifier: installers}
+        else:
+            packages = with_multiple_packages(version, urls)
+
+        for identifier, installers in packages.items():
+            update(
+                identifier,
+                version,
+                installers,
+                {
+                    "base_version": f"{old_version}",
+                    "owner_and_repo": owner_and_repo,
+                    "release_notes": release_notes,
+                    "release_notes_url": release["html_url"],
+                    "release_notes_locale": locale,
+                    "override_old_installers": bool(with_multiple_packages),
+                },
+            )
     else:
         create_fork()
         run_komac(identifier, version, [installer["InstallerUrl"] for installer in installers])
