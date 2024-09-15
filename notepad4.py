@@ -19,6 +19,7 @@ def main():
 
 
 def _get_packages(version: str, urls: dict[str, str]) -> dict[str, Sequence[Installer]]:
+    version = f"v{version}"
     urls = {file: url for file, url in urls.items() if not file.startswith("FindInFiles-")}
 
     installers: list[Installer] = []
@@ -55,6 +56,8 @@ def _get_packages(version: str, urls: dict[str, str]) -> dict[str, Sequence[Inst
         del urls[f"Notepad4_{lang}_{asset_arch}_{version}.zip"]
         url = urls.pop(f"Notepad4_HD_{lang}_{asset_arch}_{version}.zip")
         installers_avx2.append(get_installer(url, lang, arch))
+
+    assert not urls, urls
 
     return {"zufuliu.notepad4": installers, "zufuliu.notepad4.AVX2": installers_avx2}
 
