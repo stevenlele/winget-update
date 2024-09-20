@@ -49,12 +49,10 @@ def _get_update_args(github_release: dict | None, old_version: str):
         args: UpdateArgs = {
             "base_version": old_version,
             "owner_and_repo": "telegramdesktop/tdesktop",
-            "release_notes": github_release["body"],
-            "release_notes_url": github_release["html_url"],
-            "release_notes_locale": "en-US",
+            "release_notes": {"en-US": (github_release["body"], github_release["html_url"])},
         }
     else:
-        args = {"base_version": old_version, "release_notes_locale": "en-US"}
+        args = {"base_version": old_version}
     return args
 
 

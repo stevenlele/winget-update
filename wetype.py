@@ -39,7 +39,6 @@ def _get_update_args(release: dict | None, old_version: str):
     if not release:
         args: UpdateArgs = {
             "base_version": old_version,
-            "release_notes_locale": "zh-CN",
             "keep_notes_on_version_prefix": old_version.rpartition(".")[0] + ".",
         }
     else:
@@ -54,9 +53,9 @@ def _get_update_args(release: dict | None, old_version: str):
 
         args: UpdateArgs = {
             "base_version": old_version,
-            "release_notes": release_notes,
-            "release_notes_locale": "zh-CN",
-            "release_notes_url": f"https://z.weixin.qq.com/web/change-log/{release['id']}",
+            "release_notes": {
+                "zh-CN": (release_notes, f"https://z.weixin.qq.com/web/change-log/{release['id']}")
+            },
             # "release_date": release_date.date(),
             "is_url_important": True,
         }

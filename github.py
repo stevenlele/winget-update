@@ -37,7 +37,7 @@ def update(
     args: UpdateArgs = {"base_version": ""},
 ) -> PRNumber | None:
     print(f"Updating {identifier!r} to {version}", end="")
-    if "release_notes" in args:
+    if args.get("release_notes"):
         print(" with release notes...")
     else:
         print(" without release notes...")

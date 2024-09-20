@@ -1,0 +1,31 @@
+name: Update Feishu
+
+on:
+  workflow_dispatch:
+    inputs:
+      zh:
+        description: Config for zh
+        required: true
+      en:
+        description: Config for en
+        required: true
+
+jobs:
+  update:
+    name: Update Feishu
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Setup environment
+        run: |
+          set -x
+          pip3 install -r requirements.txt
+      - name: Update Feishu
+        env:
+          GITHUB_TOKEN: ${{ secrets.TOKEN }}
+        run: |
+          python3 feishu.py

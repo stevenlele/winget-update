@@ -17,9 +17,7 @@ def get(url: str):
 class UpdateArgs(TypedDict, total=False):
     base_version: Required[str]
     release_date: date
-    release_notes: str
-    release_notes_locale: str
-    release_notes_url: str
+    release_notes: dict[str, tuple[str, str]]
     owner_and_repo: str
     keep_notes_on_version_prefix: str
     is_url_important: bool

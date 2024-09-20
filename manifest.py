@@ -31,8 +31,24 @@ def fill_in_release_notes(
     manifests: Manifests, identifier: str, args: UpdateArgs, *, force: bool = False
 ) -> bool:
     assert (notes := args.get("release_notes"))
-    assert (locale := args.get("release_notes_locale"))
+    return any(
+        _fill_in_release_notes_by_locale(
+            manifests, identifier, args, notes=_notes, locale=locale, url=url, force=force
+        )
+        for locale, (_notes, url) in notes.items()
+    )
 
+
+def _fill_in_release_notes_by_locale(
+    manifests: Manifests,
+    identifier: str,
+    args: UpdateArgs,
+    *,
+    notes: str,
+    locale: str,
+    url: str,
+    force: bool,
+) -> bool:
     notes = notes.strip().replace("\r\n", "\n")
     notes = re.sub(r"\[([^\]]+?)\]\(\S+?\)", r"\1", notes)  # links
     notes = re.sub(r"(^|\n)#+ (.+?)\n+", r"\1\2\n", notes)  # headings
@@ -58,14 +74,14 @@ def fill_in_release_notes(
 
     manifest = manifests[f"{identifier}.locale.{locale}.yaml"]
     if args.get("is_url_important"):
-        assert (url := args.get("release_notes_url"))
+        assert url
         if not (manifest := _insert_property(manifest, "ReleaseNotesUrl", url, force=force)):
             return False
         assert (manifest := _insert_property(manifest, "ReleaseNotes", notes, force=True))
     else:
         if not (manifest := _insert_property(manifest, "ReleaseNotes", notes, force=force)):
             return False
-        if url := args.get("release_notes_url"):
+        if url:
             manifest = _insert_property(manifest, "ReleaseNotesUrl", url, force=force) or manifest
     manifests[f"{identifier}.locale.{locale}.yaml"] = manifest
 

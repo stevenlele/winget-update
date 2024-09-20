@@ -62,9 +62,7 @@ def main(
                 {
                     "base_version": f"{old_version}",
                     "owner_and_repo": owner_and_repo,
-                    "release_notes": release_notes,
-                    "release_notes_url": release["html_url"],
-                    "release_notes_locale": locale,
+                    "release_notes": {locale: (release_notes, release["html_url"])},
                     "override_old_installers": bool(with_multiple_packages),
                 },
             )
