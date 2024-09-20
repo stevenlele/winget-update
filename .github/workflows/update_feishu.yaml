@@ -27,5 +27,7 @@ jobs:
       - name: Update Feishu
         env:
           GITHUB_TOKEN: ${{ secrets.TOKEN }}
+          zh: ${{ inputs.zh }}
+          en: ${{ inputs.en }}
         run: |
           python3 feishu.py
