@@ -102,7 +102,7 @@ def update_new_version(
     args: UpdateArgs,
 ):
     original = manifests.copy()
-    locale = args.get("release_notes_locale")
+    locales = args.get("release_notes", {}).keys()
 
     for filename, text in manifests.items():
         text, newline = _normalize_crlf(text)
@@ -162,7 +162,7 @@ def update_new_version(
         elif ".locale." in filename:
             if (prefix := args.get("keep_notes_on_version_prefix")) and version.startswith(prefix):
                 pass
-            elif filename.endswith(f".locale.{locale}.yaml") and args.get("release_notes"):
+            elif filename.removesuffix(".yaml").partition(".locale.")[2] in locales:
                 pass
             else:
                 doc.pop("ReleaseNotes", None)  # type: ignore
@@ -171,7 +171,7 @@ def update_new_version(
         yaml.dump(doc, s := StringIO(newline=newline))
         manifests[filename] = s.getvalue()
 
-    if args.get("release_notes"):
+    if locales:
         fill_in_release_notes(manifests, identifier, args, force=True)
 
     _print_manifests_diff(original, manifests)
