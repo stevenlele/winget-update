@@ -31,12 +31,13 @@ def fill_in_release_notes(
     manifests: Manifests, identifier: str, args: UpdateArgs, *, force: bool = False
 ) -> bool:
     assert (notes := args.get("release_notes"))
-    return any(
-        _fill_in_release_notes_by_locale(
+    changed = False
+    for locale, (_notes, url) in notes.items():
+        if _fill_in_release_notes_by_locale(
             manifests, identifier, args, notes=_notes, locale=locale, url=url, force=force
-        )
-        for locale, (_notes, url) in notes.items()
-    )
+        ):
+            changed = True
+    return changed
 
 
 def _fill_in_release_notes_by_locale(
