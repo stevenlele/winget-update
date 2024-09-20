@@ -2,6 +2,8 @@ import json
 from os import getenv
 from typing import Any
 
+import rich
+
 from github import update
 
 
@@ -11,6 +13,8 @@ def _get_config(lang: str) -> dict[str, Any]:
 
 
 def main():
+    rich.reconfigure(force_terminal=True, width=4096)
+
     zh = _get_config("zh")
     en = _get_config("en")
 
@@ -26,7 +30,7 @@ def main():
         version,
         [{"InstallerUrl": url}],
         {
-            "base_version": "",
+            "base_version": getenv("base_version", ""),
             "release_notes": {
                 "zh-CN": (
                     zh["releaseNotes"],

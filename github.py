@@ -91,6 +91,7 @@ def update(
         message_prefix = "New version"
     elif owner_open_pr and (base_version := args.get("base_version")) and version != base_version:
         print("Repo info is rolled back, rerunning update...")
+        manifests = _get_base_manifests(identifier, args, sha=sha)
         update_new_version(manifests, identifier, version, installers, args)
         message_prefix = "New version (rerun)"
     elif not fill_in_release_notes(manifests, identifier, args):

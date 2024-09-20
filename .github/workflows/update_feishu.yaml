@@ -9,6 +9,9 @@ on:
       en:
         description: Config for en
         required: true
+      base_version:
+        description: Base version
+        required: false
 
 jobs:
   update:
@@ -29,5 +32,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.TOKEN }}
           zh: ${{ inputs.zh }}
           en: ${{ inputs.en }}
+          base_version: ${{ inputs.base_version }}
         run: |
           python3 feishu.py
