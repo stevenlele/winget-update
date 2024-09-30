@@ -6,10 +6,9 @@ from pprint import pformat
 from time import sleep
 from typing import Any, Callable, Literal, Sequence, TypedDict
 
-import httpx
 from rich import print
 
-from common import CLIENT, UpdateArgs, Version, try_parse_version
+from common import UpdateArgs, Version, retry_request, try_parse_version
 from manifest import Installer, Manifests, fill_in_release_notes, update_new_version
 
 assert (_TOKEN := getenv("GITHUB_TOKEN"))
@@ -125,14 +124,7 @@ def _rest(method: str, url: str, *, json: dict | None = None) -> Any:
         url = f"https://api.github.com{url}"
     else:
         assert url.startswith("https://api.github.com")
-    for i in range(2, -1, -1):
-        try:
-            response = CLIENT.request(method, url, json=json, headers=HEADERS)
-            break
-        except httpx.ReadTimeout:
-            if i:
-                continue
-            raise
+    response = retry_request(method, url, json=json, headers=HEADERS)
     if response.status_code == 204:
         assert not response.content
         return None
@@ -148,7 +140,8 @@ def is_pr_open(number: int) -> bool:
 
 
 def _graphql(query: str, variables: dict = {}, accept_error: Callable[[list], bool] | None = None):
-    response = CLIENT.post(
+    response = retry_request(
+        "POST",
         "https://api.github.com/graphql",
         json={"query": query, "variables": variables},
         headers=HEADERS,

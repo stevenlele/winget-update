@@ -6,12 +6,28 @@ from typing import Required, Sequence, TypedDict
 
 import httpx
 
-CLIENT = httpx.Client(follow_redirects=True)
+CLIENT = httpx.Client(follow_redirects=True, transport=httpx.HTTPTransport(retries=3))
 
 
 def get(url: str):
-    assert (response := CLIENT.get(url)).is_success
+    assert (response := retry_request("GET", url)).is_success
     return response.text
+
+
+def retry_request(
+    method: str,
+    url: str,
+    *,
+    json: dict | None = None,
+    headers: dict | None = None,
+):
+    retries = 3
+    while True:
+        try:
+            return CLIENT.request(method, url, json=json, headers=headers)
+        except httpx.TimeoutException:
+            if (retries := retries - 1) == 0:
+                raise
 
 
 class UpdateArgs(TypedDict, total=False):
