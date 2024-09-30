@@ -70,11 +70,8 @@ def _fill_in_release_notes_by_locale(
         notes = spacing(notes)
     notes = re.sub(r" +$", "", notes, flags=re.MULTILINE)
 
-    if not notes:
-        return False
-
     manifest = manifests[f"{identifier}.locale.{locale}.yaml"]
-    if args.get("is_url_important"):
+    if args.get("is_url_important") or force:
         assert url
         if not (manifest := _insert_property(manifest, "ReleaseNotesUrl", url, force=force)):
             return False
@@ -211,8 +208,13 @@ def _insert_property(text: str, key: str, value: object, *, force: bool = False)
     doc: CommentedMap = yaml.load(text)
 
     if placeholders:
-        assert doc[key] == 0
+        assert doc[key] == 0 and value
         doc[key] = value
+    elif not value:
+        if force:
+            doc.pop(key, None)  # type: ignore
+        else:
+            return None
     elif key in doc:
         if force:
             doc[key] = value
