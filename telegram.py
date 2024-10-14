@@ -1,8 +1,8 @@
 import json
 from typing import override
 
-from common import CLIENT, UpdateArgs, Version, get
-from github import get_gh_api, update
+from common import UpdateArgs, Version, get, retry_request
+from github import get_gh_api
 from manifest import Installer
 from with_release_notes import WithReleaseNotes
 
@@ -39,7 +39,9 @@ def _get_installers(new_version: str):
         },
     ]
 
-    assert all(CLIENT.head(installer["InstallerUrl"]).is_success for installer in installers)
+    assert all(
+        retry_request("HEAD", installer["InstallerUrl"]).is_success for installer in installers
+    )
 
     return installers
 
