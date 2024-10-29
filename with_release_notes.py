@@ -33,7 +33,11 @@ class WithReleaseNotes(ABC):
 
         self.old_version = old_version_data["version"]
         old_version = Version(self.old_version)
-        assert (latest_version := self.get_latest_version()) >= old_version
+        if (latest_version := self.get_latest_version()) < old_version:
+            return print(
+                f"::error file={self.moniker}.py,title=Version"
+                f" rollback::{self.moniker} {old_version} -> {latest_version}"
+            )
         if (
             old_version == latest_version
             and old_version_data["has_release_notes"]
