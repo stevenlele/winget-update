@@ -2,6 +2,7 @@ import re
 import subprocess
 from datetime import date
 from sys import stderr, stdout
+from time import sleep
 from typing import Required, Sequence, TypedDict
 
 import httpx
@@ -21,13 +22,14 @@ def retry_request(
     json: dict | None = None,
     headers: dict | None = None,
 ):
-    retries = 3
+    retries = 5
     while True:
         try:
             return CLIENT.request(method, url, json=json, headers=headers)
         except httpx.TimeoutException:
             if (retries := retries - 1) == 0:
                 raise
+            sleep(1)
 
 
 class UpdateArgs(TypedDict, total=False):
