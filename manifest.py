@@ -106,11 +106,12 @@ def update_new_version(
         yaml = _get_yaml()
         doc: CommentedMap = yaml.load(text)
 
-        top_comments: list[CommentToken] = doc.ca.comment[1]  # type: ignore
-        assert len(top_comments) <= 2
-        if len(top_comments) == 2:
-            top_comments.pop(0)
-        assert top_comments[0].value.startswith("# yaml-language-server")
+        if doc.ca.comment:
+            top_comments: list[CommentToken] = doc.ca.comment[1]  # type: ignore
+            assert len(top_comments) <= 2
+            if len(top_comments) == 2:
+                top_comments.pop(0)
+            assert top_comments[0].value.startswith("# yaml-language-server")
 
         doc["PackageVersion"] = version
 
