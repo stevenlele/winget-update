@@ -38,7 +38,13 @@ def _get_packages(version: str, urls: dict[str, str]) -> dict[str, Sequence[Inst
                 "InstallerUrl": url,
             }
 
-    for lang in ("en", "fr", "it", "ja", "ko", "zh-Hans", "zh-Hant", "i18n"):
+    LANG_REGEX = re.compile(r"Notepad4(?:_HD)?_([0-9A-Za-z-]+)_")
+    langs = {LANG_REGEX.match(file).group(1) for file in urls}
+    langs.remove("i18n")
+    langs = sorted(langs)
+    langs.append("i18n")
+
+    for lang in langs:
         for arch, asset_arch in (
             ("x86", "Win32"),
             ("x64", "x64"),
