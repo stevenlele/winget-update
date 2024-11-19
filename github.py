@@ -93,7 +93,7 @@ def update(
         manifests = _get_base_manifests(identifier, args, sha=sha)
         update_new_version(manifests, identifier, version, installers, args)
         message_prefix = "New version (rerun)"
-    elif not fill_in_release_notes(manifests, identifier, args):
+    elif not args.get("release_notes") or not fill_in_release_notes(manifests, identifier, args):
         print("This branch is up-to-date, we'll mark this update as done")
         return None
     elif other_open_pr and not owner_open_pr:
