@@ -201,7 +201,8 @@ def _create_branch(name: str, sha: str):
 
 
 def create_fork() -> None:
-    global _owner_repo_id
+    global _owner_repo_id, _should_delete_fork
+    _should_delete_fork = False
     if _owner_repo_id:
         return
     print("Creating fork...")
