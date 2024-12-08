@@ -112,7 +112,9 @@ def update_new_version(
             if len(top_comments) == 2:
                 top_comments.pop(0)
             assert top_comments[0].value.startswith("# yaml-language-server")
+            top_comments[0].value = top_comments[0].value.replace("1.6.0", "1.9.0")
 
+        doc["ManifestVersion"] = doc["ManifestVersion"].replace("1.6.0", "1.9.0")
         doc["PackageVersion"] = version
 
         if filename.endswith(".installer.yaml"):
