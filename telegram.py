@@ -28,6 +28,13 @@ def _get_installers(new_version: str):
             "UpgradeBehavior": "install",
         },
         {
+            "Architecture": "arm64",
+            "InstallerType": "inno",
+            "Scope": "user",
+            "InstallerUrl": f"https://td.telegram.org/tarm64/tsetup-arm64.{new_version}.exe",
+            "UpgradeBehavior": "install",
+        },
+        {
             "Architecture": "x64",
             "InstallerType": "zip",
             "InstallerUrl": f"https://td.telegram.org/tx64/tportable-x64.{new_version}.zip",
@@ -36,6 +43,11 @@ def _get_installers(new_version: str):
             "Architecture": "x86",
             "InstallerType": "zip",
             "InstallerUrl": f"https://td.telegram.org/tsetup/tportable.{new_version}.zip",
+        },
+        {
+            "Architecture": "arm64",
+            "InstallerType": "zip",
+            "InstallerUrl": f"https://td.telegram.org/tarm64/tportable-arm64.{new_version}.zip",
         },
     ]
 
