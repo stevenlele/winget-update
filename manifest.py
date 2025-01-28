@@ -147,7 +147,7 @@ def update_new_version(
                     if inferred_date is None:
                         inferred_date = last_modified
                     else:
-                        assert inferred_date == last_modified
+                        inferred_date = min(last_modified, inferred_date)
 
                     h = sha256(usedforsecurity=False)
                     for chunk in response.iter_bytes():
