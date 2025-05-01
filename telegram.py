@@ -31,7 +31,7 @@ def _get_installers(new_version: str):
             "Architecture": "arm64",
             "InstallerType": "inno",
             "Scope": "user",
-            "InstallerUrl": f"https://td.telegram.org/tarm64/tsetup-arm64.5.14.0.exe",
+            "InstallerUrl": f"https://td.telegram.org/tarm64/tsetup-arm64.{new_version}.exe",
             "UpgradeBehavior": "install",
         },
         {
@@ -47,7 +47,7 @@ def _get_installers(new_version: str):
         {
             "Architecture": "arm64",
             "InstallerType": "zip",
-            "InstallerUrl": f"https://td.telegram.org/tarm64/tportable-arm64.5.14.0.zip",
+            "InstallerUrl": f"https://td.telegram.org/tarm64/tportable-arm64.{new_version}.zip",
         },
     ]
 
