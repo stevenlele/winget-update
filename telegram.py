@@ -31,7 +31,7 @@ def _get_installers(new_version: str):
             "Architecture": "arm64",
             "InstallerType": "inno",
             "Scope": "user",
-            "InstallerUrl": f"https://td.telegram.org/tarm64/tsetup-arm64.{new_version}.exe",
+            "InstallerUrl": f"https://td.telegram.org/tarm64/tsetup-arm64.5.14.0.exe",
             "UpgradeBehavior": "install",
         },
         {
@@ -47,7 +47,7 @@ def _get_installers(new_version: str):
         {
             "Architecture": "arm64",
             "InstallerType": "zip",
-            "InstallerUrl": f"https://td.telegram.org/tarm64/tportable-arm64.{new_version}.zip",
+            "InstallerUrl": f"https://td.telegram.org/tarm64/tportable-arm64.5.14.0.zip",
         },
     ]
 
@@ -77,7 +77,7 @@ class Telegram(WithReleaseNotes):
 
     @override
     def get_latest_version(self) -> Version:
-        return Version((5, 14, 0))
+        return get_latest_version()
 
     @override
     def has_release_notes(self) -> bool:
@@ -114,8 +114,8 @@ def _get_github_release(latest_version: str) -> dict | None:
         index = next(i for i, r in enumerate(releases) if r["tag_name"] == tag_name)
     except StopIteration:
         return None
-    # for i in range(index):
-    #     if releases[i]["prerelease"]:
-    #         continue
-    #     assert all("Windows" not in asset["label"] for asset in releases[i]["assets"])
+    for i in range(index):
+        if releases[i]["prerelease"]:
+            continue
+        assert all("Windows" not in asset["label"] for asset in releases[i]["assets"])
     return releases[index]
