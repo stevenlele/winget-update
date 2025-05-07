@@ -59,6 +59,8 @@ def _get_installers(new_version: str):
 
 
 def _get_update_args(github_release: dict | None, old_version: str):
+    if old_version == "5.14.1":
+        old_version = "5.14.0"
     if github_release:
         args: UpdateArgs = {
             "base_version": old_version,
