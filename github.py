@@ -146,7 +146,7 @@ def _graphql(query: str, variables: dict = {}, accept_error: Callable[[list], bo
         json={"query": query, "variables": variables},
         headers=HEADERS,
     )
-    assert response.is_success
+    assert response.is_success, response.text
     payload = response.json()
     if (errors := payload.get("errors")) and (accept_error is None or not accept_error(errors)):
         raise RuntimeError(pformat(errors, sort_dicts=False))
