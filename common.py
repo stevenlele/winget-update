@@ -1,6 +1,7 @@
 import re
-import subprocess
 from datetime import date
+from io import BytesIO
+from os.path import isfile
 from sys import stderr, stdout
 from time import sleep
 from typing import Required, Sequence, TypedDict
@@ -43,6 +44,11 @@ class UpdateArgs(TypedDict, total=False):
 
 
 def run_komac(identifier: str, version: str, urls: str | Sequence[str]):
+    if not isfile("./komac"):
+        _download_komac()
+
+    import subprocess
+
     command = ["./komac", "update", identifier, "-v", version, "--submit", "-u"]
     if isinstance(urls, str):
         command.append(urls)
@@ -50,6 +56,22 @@ def run_komac(identifier: str, version: str, urls: str | Sequence[str]):
         command.extend(urls)
     print("$", subprocess.list2cmdline(command), flush=True)
     subprocess.run(command, check=True, stdout=stdout, stderr=stderr)
+
+
+def _download_komac():
+    fileobj = BytesIO(
+        CLIENT.get(
+            "https://github.com/russellbanks/Komac/releases/download/nightly/komac-nightly-x86_64-unknown-linux-gnu.tar.gz"
+        )
+        .raise_for_status()
+        .content
+    )
+
+    import tarfile
+
+    with tarfile.open(mode="r|gz", fileobj=fileobj) as tar:
+        tar.extractall()
+    assert isfile("./komac")
 
 
 VERSION_REGEX = re.compile(r"\d+(?:\.\d+)+")
