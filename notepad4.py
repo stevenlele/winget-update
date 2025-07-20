@@ -48,7 +48,6 @@ def _get_packages(version: str, urls: dict[str, str]) -> dict[str, Sequence[Inst
         for arch, asset_arch in (
             ("x86", "Win32"),
             ("x64", "x64"),
-            ("arm", "ARM"),
             ("arm64", "ARM64"),
         ):
             url = urls.pop(f"Notepad4_{lang}_{asset_arch}_{version}.zip", None)
