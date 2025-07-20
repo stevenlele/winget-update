@@ -50,10 +50,7 @@ def _get_packages(version: str, urls: dict[str, str]) -> dict[str, Sequence[Inst
             ("x64", "x64"),
             ("arm64", "ARM64"),
         ):
-            url = urls.pop(f"Notepad4_{lang}_{asset_arch}_{version}.zip", None)
-            if url is None:
-                assert arch == "arm" and lang != "en"
-                continue
+            url = urls.pop(f"Notepad4_{lang}_{asset_arch}_{version}.zip")
             url = urls.pop(f"Notepad4_HD_{lang}_{asset_arch}_{version}.zip", url)
             installers.append(get_installer(url, lang, arch))
 
