@@ -120,25 +120,19 @@ def update_new_version(
         doc["PackageVersion"] = version
 
         if filename.endswith(".installer.yaml"):
-            inferred_date = None
-
-            if args.get("override_old_installers"):
-                doc["Installers"] = [
-                    {**installer, "InstallerSha256": None} for installer in new_installers
-                ]
-
             installers: list[Installer] = doc["Installers"]
-            assert len(installers) == len(new_installers)
+            if args.get("override_old_installers"):
+                installers[:] = new_installers
+            else:
+                assert len(installers) == len(new_installers)
+                for installer, new_installer in zip(installers, new_installers):
+                    for key, value in new_installer.items():
+                        if key in {"InstallerUrl", "InstallerSha256"}:
+                            continue
+                        assert installer[key] == value, f"{key}: {installer[key]!r} != {value!r}"
 
-            hashes = {}
-
-            for installer, new_installer in zip(installers, new_installers):
-                _installer = {**installer}
-                del _installer["InstallerUrl"], _installer["InstallerSha256"]
-                _new_installer = {**new_installer}
-                hashes[_new_installer.pop("InstallerUrl")] = None
-                assert _installer.items() & _new_installer.items() == _new_installer.items()
-
+            inferred_date = None
+            hashes = {installer["InstallerUrl"]: "" for installer in new_installers}
             for url in hashes:
                 print("Downloading", url)
                 with CLIENT.stream("GET", url) as response:
