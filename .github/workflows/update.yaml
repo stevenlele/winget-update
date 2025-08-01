@@ -11,6 +11,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Purge cache
+        run: |
+          cache_created_at=$(gh cache list --json createdAt -q '.[0].createdAt')
+          if [[ $(date -d "$cache_created_at" +%s) -lt $(date -d "1 month ago" +%s) ]]; then
+            echo "Purging cache"
+            gh cache delete --all
+          fi
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
