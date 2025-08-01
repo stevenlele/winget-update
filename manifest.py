@@ -21,6 +21,8 @@ class Installer(TypedDict, total=False):
     Architecture: str
     InstallerType: str
     Scope: str
+    NestedInstallerType: str
+    NestedInstallerFiles: list
     InstallerUrl: Required[str]
     InstallerSha256: str
     UpgradeBehavior: str

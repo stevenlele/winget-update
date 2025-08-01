@@ -12,55 +12,49 @@ def main():
 
 
 def _get_installers(new_version: str):
-    installers: list[Installer] = [
-        {
-            "Architecture": "x64",
-            "InstallerType": "inno",
-            "Scope": "user",
-            "InstallerUrl": f"https://td.telegram.org/tx64/tsetup-x64.{new_version}.exe",
-            "UpgradeBehavior": "install",
-        },
-        {
-            "Architecture": "x86",
-            "InstallerType": "inno",
-            "Scope": "user",
-            "InstallerUrl": f"https://td.telegram.org/tsetup/tsetup.{new_version}.exe",
-            "UpgradeBehavior": "install",
-        },
-        {
-            "Architecture": "arm64",
-            "InstallerType": "inno",
-            "Scope": "user",
-            "InstallerUrl": f"https://td.telegram.org/tarm64/tsetup-arm64.{new_version}.exe",
-            "UpgradeBehavior": "install",
-        },
-        {
-            "Architecture": "x64",
-            "InstallerType": "zip",
-            "InstallerUrl": f"https://td.telegram.org/tx64/tportable-x64.{new_version}.zip",
-        },
-        {
-            "Architecture": "x86",
-            "InstallerType": "zip",
-            "InstallerUrl": f"https://td.telegram.org/tsetup/tportable.{new_version}.zip",
-        },
-        {
-            "Architecture": "arm64",
-            "InstallerType": "zip",
-            "InstallerUrl": f"https://td.telegram.org/tarm64/tportable-arm64.{new_version}.zip",
-        },
-    ]
+    installers: list[Installer] = []
 
-    assert all(
-        retry_request("HEAD", installer["InstallerUrl"]).is_success for installer in installers
-    )
+    for arch, url in [
+        ("x64", f"https://td.telegram.org/tx64/tsetup-x64.{new_version}.exe"),
+        ("x86", f"https://td.telegram.org/tsetup/tsetup.{new_version}.exe"),
+        ("arm64", f"https://td.telegram.org/tarm64/tsetup-arm64.{new_version}.exe"),
+    ]:
+        if (response := retry_request("HEAD", url)).is_success:
+            installers.append({
+                "Architecture": arch,
+                "InstallerType": "inno",
+                "Scope": "user",
+                "InstallerUrl": url,
+                "InstallerSha256": "",
+                "UpgradeBehavior": "install",
+            })
+        else:
+            assert arch == "arm64" and response.status_code == 404
+
+    for arch, url in [
+        ("x64", f"https://td.telegram.org/tx64/tportable-x64.{new_version}.zip"),
+        ("x86", f"https://td.telegram.org/tsetup/tportable.{new_version}.zip"),
+        ("arm64", f"https://td.telegram.org/tarm64/tportable-arm64.{new_version}.zip"),
+    ]:
+        if (response := retry_request("HEAD", url)).is_success:
+            installers.append({
+                "Architecture": arch,
+                "InstallerType": "zip",
+                "NestedInstallerType": "portable",
+                "NestedInstallerFiles": [{
+                    "RelativeFilePath": "Telegram\\Telegram.exe",
+                    "PortableCommandAlias": "Telegram.exe",
+                }],
+                "InstallerUrl": url,
+                "InstallerSha256": "",
+            })
+        else:
+            assert arch == "arm64" and response.status_code == 404
 
     return installers
 
 
 def _get_update_args(github_release: dict | None, old_version: str):
-    if old_version == "5.14.1":
-        old_version = "5.14.0"
     if github_release:
         args: UpdateArgs = {
             "base_version": old_version,
@@ -69,6 +63,7 @@ def _get_update_args(github_release: dict | None, old_version: str):
         }
     else:
         args = {"base_version": old_version}
+    args["override_old_installers"] = True
     return args
 
 
