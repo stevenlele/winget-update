@@ -12,6 +12,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Purge cache
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           cache_created_at=$(gh cache list --json createdAt -q '.[0].createdAt')
           if [[ $(date -d "$cache_created_at" +%s) -lt $(date -d "1 month ago" +%s) ]]; then
