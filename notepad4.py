@@ -20,7 +20,7 @@ def main():
 
 def _get_packages(version: str, urls: dict[str, str]) -> dict[str, Sequence[Installer]]:
     version = f"v{version}"
-    urls = {file: url for file, url in urls.items() if not file.startswith("FindInFiles-")}
+    urls = {file: url for file, url in urls.items() if not file.startswith("FindInFiles-") and "AVX512" not in file}
 
     installers: list[Installer] = []
     installers_avx2: list[Installer] = []
