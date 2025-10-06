@@ -16,6 +16,8 @@ from common import CLIENT, UpdateArgs
 
 type Manifests = dict[str, str]
 
+sha256_cache: dict[str, str] = {}
+
 
 class Installer(TypedDict, total=False):
     Architecture: str
@@ -134,6 +136,9 @@ def update_new_version(
             inferred_date = None
             hashes = {installer["InstallerUrl"]: "" for installer in new_installers}
             for url in hashes:
+                if url in sha256_cache:
+                    hashes[url] = sha256_cache[url]
+                    continue
                 print("Downloading", url)
                 with CLIENT.stream("GET", url) as response:
                     assert response.is_success
