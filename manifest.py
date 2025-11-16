@@ -136,21 +136,23 @@ def update_new_version(
             inferred_date = None
             hashes = {installer["InstallerUrl"]: "" for installer in new_installers}
             for url in hashes:
+                method = "GET"
                 if url in sha256_cache:
                     hashes[url] = sha256_cache[url]
-                    continue
-                print("Downloading", url)
-                with CLIENT.stream("GET", url) as response:
+                    method = "HEAD"
+                print(method, url)
+                with CLIENT.stream(method, url) as response:
                     assert response.is_success
                     last_modified = datetime.strptime(
                         response.headers["Last-Modified"], "%a, %d %b %Y %H:%M:%S %Z"
                     ).date()
-                    print(f"{url=} {last_modified=}")
                     if inferred_date is None:
                         inferred_date = last_modified
                     else:
                         inferred_date = min(last_modified, inferred_date)
 
+                    if method == "HEAD":
+                        continue
                     h = sha256(usedforsecurity=False)
                     for chunk in response.iter_bytes():
                         h.update(chunk)
@@ -161,7 +163,6 @@ def update_new_version(
                 installer["InstallerSha256"] = hashes[url]
 
             doc["ReleaseDate"] = args.get("release_date", inferred_date)
-            print(f"{inferred_date=} {doc['ReleaseDate']}")
         elif ".locale." in filename:
             if (prefix := args.get("keep_notes_on_version_prefix")) and version.startswith(prefix):
                 pass
