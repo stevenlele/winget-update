@@ -8,7 +8,7 @@ from typing import Required, Sequence, TypedDict
 
 import httpx
 
-CLIENT = httpx.Client(timeout=10, follow_redirects=True, transport=httpx.HTTPTransport(retries=3))
+CLIENT = httpx.Client(timeout=30, follow_redirects=True, transport=httpx.HTTPTransport(retries=3))
 
 
 def get(url: str):
