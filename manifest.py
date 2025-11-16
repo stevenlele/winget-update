@@ -145,6 +145,7 @@ def update_new_version(
                     last_modified = datetime.strptime(
                         response.headers["Last-Modified"], "%a, %d %b %Y %H:%M:%S %Z"
                     ).date()
+                    print(f"{url=} {last_modified=}")
                     if inferred_date is None:
                         inferred_date = last_modified
                     else:
@@ -160,6 +161,7 @@ def update_new_version(
                 installer["InstallerSha256"] = hashes[url]
 
             doc["ReleaseDate"] = args.get("release_date", inferred_date)
+            print(f"{inferred_date=} {doc['ReleaseDate']}")
         elif ".locale." in filename:
             if (prefix := args.get("keep_notes_on_version_prefix")) and version.startswith(prefix):
                 pass
