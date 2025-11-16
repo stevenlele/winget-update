@@ -185,6 +185,7 @@ def _get_existing_prs(identifier: str, version: str) -> list[_PullRequest]:
         """} } } }""",
         {"q": f"repo:{MICROSOFT_WINGET_PKGS} type:pr in:title {identifier} {version}"},
     )["search"]["nodes"]
+    result = [pr for pr in result if identifier in pr["title"].split()]
     for pr in result:
         pr["headRepositoryOwner"] = pr["headRepositoryOwner"]["login"]
         pr["author"] = pr["author"]["login"]
