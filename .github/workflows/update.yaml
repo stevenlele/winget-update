@@ -10,19 +10,19 @@ jobs:
     name: Update packages
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Purge cache
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           cache_created_at=$(gh cache list --json createdAt -q '.[0].createdAt')
-          if [[ $(date -d "$cache_created_at" +%s) -lt $(date -d "1 month ago" +%s) ]]; then
+          if [[ $(date -d "$cache_created_at" +%s) -lt $(date -d "1 week ago" +%s) ]]; then
             echo "Purging cache"
             gh cache delete --all
           fi
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
-          python-version: "3.13"
+          python-version: "3.14"
           cache: pip
       - name: Setup environment
         run: |
