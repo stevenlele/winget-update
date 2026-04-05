@@ -74,7 +74,8 @@ class Telegram(WithReleaseNotes):
 
     @override
     def get_latest_version(self) -> Version:
-        return get_latest_version()
+        v, self.is_arm_updated = get_latest_version()
+        return v
 
     @override
     def has_release_notes(self) -> bool:
@@ -89,19 +90,26 @@ class Telegram(WithReleaseNotes):
     def get_update_args(self) -> UpdateArgs:
         return _get_update_args(self.github_release, self.old_version)
 
+    @override
+    def should_force_rerun(self) -> bool:
+        result = not self.memo and self.is_arm_updated
+        self.memo = self.is_arm_updated
+        return result
 
-def get_latest_version() -> Version:
+
+def get_latest_version() -> tuple[Version, bool]:
     response = json.loads(get("https://td.telegram.org/current4"))
 
     win64_stable = response["win64"]["stable"]
     win32_stable = response["win"]["stable"]
 
     assert (version_code := win64_stable["released"]) == win32_stable["released"]
+    is_arm_updated = version_code == response["winarm"]["stable"]
 
     major_minor, patch = divmod(int(version_code), 1_000)
     major, minor = divmod(major_minor, 1_000)
 
-    return Version((major, minor, patch))
+    return Version((major, minor, patch)), is_arm_updated
 
 
 def _get_github_release(latest_version: str) -> dict | None:

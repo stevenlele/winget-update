@@ -85,13 +85,12 @@ def update(
     if not (manifests := _get_manifests(sha, path)):
         assert refs
         print("There's no manifest of this version, performing update...")
-        manifests = _get_base_manifests(identifier, args, sha=sha)
-        update_new_version(manifests, identifier, version, installers, args)
         message_prefix = "New version"
     elif owner_open_pr and (base_version := args.get("base_version")) and version != base_version:
         print("Repo info is rolled back, rerunning update...")
-        manifests = _get_base_manifests(identifier, args, sha=sha)
-        update_new_version(manifests, identifier, version, installers, args)
+        message_prefix = "New version (rerun)"
+    elif args.get("should_force_rerun"):
+        print("The script determined that we should rerun the update...")
         message_prefix = "New version (rerun)"
     elif not args.get("release_notes") or not fill_in_release_notes(manifests, identifier, args):
         print("This branch is up-to-date, we'll mark this update as done")
@@ -101,6 +100,10 @@ def update(
         return other_open_pr["number"]
 
     del other_open_pr
+
+    if message_prefix != "ReleaseNotes":
+        manifests = _get_base_manifests(identifier, args, sha=sha)
+        update_new_version(manifests, identifier, version, installers, args)
 
     message = f"{message_prefix}: {identifier} version {version}"
     if owner_open_pr:

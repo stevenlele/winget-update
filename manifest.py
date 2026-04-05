@@ -6,7 +6,6 @@ from hashlib import sha256
 from io import StringIO
 from typing import Required, TypedDict
 
-from pangu import spacing
 from rich import print
 from rich.syntax import Syntax
 from ruamel.yaml import YAML, CommentedMap, CommentToken
@@ -71,6 +70,8 @@ def _fill_in_release_notes_by_locale(
         )
         notes = re.sub(r"(?:https://github\.com/.+?/commit/)?[0-9a-z]{40}", "", notes)
     if locale == "zh-CN":
+        from pangu import spacing
+
         notes = spacing(notes)
     notes = re.sub(r" +$", "", notes, flags=re.MULTILINE)
 

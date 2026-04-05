@@ -41,6 +41,7 @@ class UpdateArgs(TypedDict, total=False):
     keep_notes_on_version_prefix: str
     is_url_important: bool
     override_old_installers: bool
+    should_force_rerun: bool
 
 
 def run_komac(identifier: str, version: str, urls: str | Sequence[str]):
@@ -70,7 +71,7 @@ def _download_komac():
     import tarfile
 
     with tarfile.open(mode="r|gz", fileobj=fileobj) as tar:
-        tar.extractall()
+        tar.extract("komac")
     assert isfile("./komac")
 
 

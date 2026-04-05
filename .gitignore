@@ -2,3 +2,4 @@ __pycache__
 komac
 *.tar.gz
 .venv
+LICENSE.md

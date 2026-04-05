@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import override
 from zoneinfo import ZoneInfo
 
-from common import VERSION_REGEX, UpdateArgs, Version, get
+from common import CLIENT, VERSION_REGEX, UpdateArgs, Version, get
 from manifest import Installer
 from with_release_notes import WithReleaseNotes
 
@@ -87,3 +87,11 @@ class WeType(WithReleaseNotes):
     @override
     def get_update_args(self) -> UpdateArgs:
         return _get_update_args(self.release, self.old_version)
+
+    @override
+    def should_force_rerun(self) -> bool:
+        response = CLIENT.head(self.url).raise_for_status()
+        etag: str = response.headers.get("ETag").strip('"')
+        result = self.memo != etag
+        self.memo = etag
+        return result
