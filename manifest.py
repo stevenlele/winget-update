@@ -18,6 +18,12 @@ type Manifests = dict[str, str]
 sha256_cache: dict[str, str] = {}
 
 
+def fill_sha256_cache(release):
+    for asset in release["assets"]:
+        if digest := asset.get("digest"):
+            sha256_cache[asset["browser_download_url"]] = digest.removeprefix("sha256:").upper()
+
+
 class Installer(TypedDict, total=False):
     Architecture: str
     InstallerType: str

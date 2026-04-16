@@ -1,9 +1,9 @@
 import json
 from typing import override
 
-from common import UpdateArgs, Version, get, retry_request
+from common import UpdateArgs, Version, get
 from github import get_gh_api
-from manifest import Installer
+from manifest import Installer, fill_sha256_cache
 from with_release_notes import WithReleaseNotes
 
 
@@ -11,7 +11,7 @@ def main():
     Telegram().main()
 
 
-def _get_installers(new_version: str):
+def _get_installers(new_version: str, is_arm_updated: bool, github_release: dict | None):
     installers: list[Installer] = []
 
     for arch, url in [
@@ -19,7 +19,7 @@ def _get_installers(new_version: str):
         ("x86", f"https://td.telegram.org/tsetup/tsetup.{new_version}.exe"),
         ("arm64", f"https://td.telegram.org/tarm64/tsetup-arm64.{new_version}.exe"),
     ]:
-        if (response := retry_request("HEAD", url)).is_success:
+        if arch != "arm64" or is_arm_updated:
             installers.append({
                 "Architecture": arch,
                 "InstallerType": "inno",
@@ -28,15 +28,13 @@ def _get_installers(new_version: str):
                 "InstallerSha256": "",
                 "UpgradeBehavior": "install",
             })
-        else:
-            assert arch == "arm64" and response.status_code == 404
 
     for arch, url in [
         ("x64", f"https://td.telegram.org/tx64/tportable-x64.{new_version}.zip"),
         ("x86", f"https://td.telegram.org/tsetup/tportable.{new_version}.zip"),
         ("arm64", f"https://td.telegram.org/tarm64/tportable-arm64.{new_version}.zip"),
     ]:
-        if (response := retry_request("HEAD", url)).is_success:
+        if arch != "arm64" or is_arm_updated:
             installers.append({
                 "Architecture": arch,
                 "InstallerType": "zip",
@@ -48,8 +46,20 @@ def _get_installers(new_version: str):
                 "InstallerUrl": url,
                 "InstallerSha256": "",
             })
-        else:
-            assert arch == "arm64" and response.status_code == 404
+
+    if not github_release:
+        return installers
+
+    # from github_releases.py
+    urls: dict[str, str] = {
+        asset["name"]: asset["browser_download_url"] for asset in github_release["assets"]
+    }
+    mapped = [urls.get(installer["InstallerUrl"].rpartition("/")[-1]) for installer in installers]
+    if all(mapped):
+        fill_sha256_cache(github_release)
+        for installer, url in zip(installers, mapped):
+            assert url
+            installer["InstallerUrl"] = url
 
     return installers
 
@@ -71,6 +81,7 @@ class Telegram(WithReleaseNotes):
     @override
     def __init__(self) -> None:
         super().__init__(__name__, "Telegram.TelegramDesktop")
+        self.installers = None
 
     @override
     def get_latest_version(self) -> Version:
@@ -79,12 +90,16 @@ class Telegram(WithReleaseNotes):
 
     @override
     def has_release_notes(self) -> bool:
-        self.github_release = (github_releases := _get_github_release(self.version))
-        return github_releases is not None
+        self.github_release = (github_release := _get_github_release(self.version))
+        return github_release is not None
 
     @override
     def get_installers(self) -> list[Installer]:
-        return _get_installers(self.version)
+        if not self.installers:
+            self.installers = _get_installers(
+                self.version, self.is_arm_updated, self.github_release
+            )
+        return self.installers
 
     @override
     def get_update_args(self) -> UpdateArgs:
@@ -92,8 +107,18 @@ class Telegram(WithReleaseNotes):
 
     @override
     def should_force_rerun(self) -> bool:
-        result = not self.memo and self.is_arm_updated
-        self.memo = self.is_arm_updated
+        result = False
+        memo: dict = self.memo
+        if not memo["is_arm_updated"] and self.is_arm_updated:
+            result = True
+        if not (is_github_release := memo["is_github_release"]):
+            is_github_release = "github.com" in self.get_installers()[0]["InstallerUrl"]
+            if is_github_release:
+                result = True
+        self.memo = {
+            "is_arm_updated": self.is_arm_updated,
+            "is_github_release": is_github_release,
+        }
         return result
 
 

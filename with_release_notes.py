@@ -41,18 +41,21 @@ class WithReleaseNotes(ABC):
                 f"::error file={self.moniker}.py,title=Version"
                 f" rollback::{self.moniker} {old_version} -> {latest_version}"
             )
-        if (
-            old_version == latest_version
-            and old_version_data["has_release_notes"]
-            and not old_blocking_pr
-        ):
-            return
 
         self.version = (version := f"{latest_version}")
         has_release_notes = self.has_release_notes()
         should_force_rerun = self.should_force_rerun()
-        if latest_version == old_version and not has_release_notes and not should_force_rerun:
-            return
+
+        if old_version == latest_version:
+            has_minor_update = False
+            if not old_version_data["has_release_notes"] and has_release_notes:
+                has_minor_update = True
+            elif should_force_rerun:
+                has_minor_update = True
+            elif old_blocking_pr:
+                has_minor_update = True
+            if not has_minor_update:
+                return
 
         args = self.get_update_args()
         args["should_force_rerun"] = should_force_rerun

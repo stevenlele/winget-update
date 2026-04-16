@@ -3,7 +3,7 @@ from typing import Protocol
 
 from common import Version, run_komac
 from github import create_fork, get_gh_api, update
-from manifest import Installer, sha256_cache
+from manifest import Installer, fill_sha256_cache
 
 
 class _PackageGetter(Protocol):
@@ -30,9 +30,7 @@ def main(
     else:
         release = get_gh_api(f"/repos/{owner_and_repo}/releases/latest")
 
-    for asset in release["assets"]:
-        if digest := asset.get("digest"):
-            sha256_cache[asset["browser_download_url"]] = digest.removeprefix("sha256:").upper()
+    fill_sha256_cache(release)
 
     version: str = release["tag_name"].removeprefix("v")
     if (new_version := Version(version)) == old_version:
