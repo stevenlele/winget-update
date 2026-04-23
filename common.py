@@ -70,7 +70,7 @@ def _download_komac():
 
     import tarfile
 
-    with tarfile.open(mode="r|gz", fileobj=fileobj) as tar:
+    with tarfile.open(mode="r:gz", fileobj=fileobj) as tar:
         tar.extract("komac")
     assert isfile("./komac")
 
