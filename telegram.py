@@ -1,7 +1,7 @@
 import json
 from typing import override
 
-from common import UpdateArgs, Version, get
+from common import UpdateArgs, Version, get, retry_request
 from github import get_gh_api
 from manifest import Installer, fill_sha256_cache
 from with_release_notes import WithReleaseNotes
@@ -19,7 +19,7 @@ def _get_installers(new_version: str, is_arm_updated: bool, github_release: dict
         ("x86", f"https://td.telegram.org/tsetup/tsetup.{new_version}.exe"),
         ("arm64", f"https://td.telegram.org/tarm64/tsetup-arm64.{new_version}.exe"),
     ]:
-        if arch != "arm64" or is_arm_updated:
+        if True:
             installers.append({
                 "Architecture": arch,
                 "InstallerType": "inno",
@@ -34,7 +34,7 @@ def _get_installers(new_version: str, is_arm_updated: bool, github_release: dict
         ("x86", f"https://td.telegram.org/tsetup/tportable.{new_version}.zip"),
         ("arm64", f"https://td.telegram.org/tarm64/tportable-arm64.{new_version}.zip"),
     ]:
-        if arch != "arm64" or is_arm_updated:
+        if True:
             installers.append({
                 "Architecture": arch,
                 "InstallerType": "zip",
@@ -47,19 +47,41 @@ def _get_installers(new_version: str, is_arm_updated: bool, github_release: dict
                 "InstallerSha256": "",
             })
 
-    if not github_release:
+    def replace_with_github_release(installers: list[Installer], github_release):
+        # from github_releases.py
+        urls: dict[str, str] = {
+            asset["name"]: asset["browser_download_url"] for asset in github_release["assets"]
+        }
+        mapped = [
+            urls.get(installer["InstallerUrl"].rpartition("/")[-1]) for installer in installers
+        ]
+        if all(mapped):
+            fill_sha256_cache(github_release)
+            for installer, url in zip(installers, mapped):
+                assert url
+                installer["InstallerUrl"] = url
+            return True
+        return False
+
+    if github_release and replace_with_github_release(installers, github_release):
         return installers
 
-    # from github_releases.py
-    urls: dict[str, str] = {
-        asset["name"]: asset["browser_download_url"] for asset in github_release["assets"]
-    }
-    mapped = [urls.get(installer["InstallerUrl"].rpartition("/")[-1]) for installer in installers]
-    if all(mapped):
-        fill_sha256_cache(github_release)
-        for installer, url in zip(installers, mapped):
-            assert url
-            installer["InstallerUrl"] = url
+    def verify_arm_installers(installers: list[Installer]) -> bool:
+        for installer in installers:
+            if installer.get("Architecture") != "arm64":
+                continue
+            if not (response := retry_request("HEAD", installer["InstallerUrl"])).is_success:
+                assert response.status_code == 404
+                return False
+        return True
+
+    if is_arm_updated or verify_arm_installers(installers):
+        return installers
+
+    installers = [installer for installer in installers if installer.get("Architecture") != "arm64"]
+
+    if github_release and replace_with_github_release(installers, github_release):
+        return installers
 
     return installers
 
@@ -106,20 +128,21 @@ class Telegram(WithReleaseNotes):
         return _get_update_args(self.github_release, self.old_version)
 
     @override
-    def should_force_rerun(self) -> bool:
-        result = False
-        memo: dict = self.memo
-        if not memo["is_arm_updated"] and self.is_arm_updated:
-            result = True
-        if not (is_github_release := memo["is_github_release"]):
+    def get_memo(self, old_memo: dict | None) -> dict:
+        if old_memo and old_memo["is_arm_updated"]:
+            self.is_arm_updated = True
+        elif not self.is_arm_updated:
+            self.is_arm_updated = any(
+                installer.get("Architecture") == "arm64" for installer in self.get_installers()
+            )
+        if old_memo and old_memo["is_github_release"]:
+            is_github_release = True
+        else:
             is_github_release = "github.com" in self.get_installers()[0]["InstallerUrl"]
-            if is_github_release:
-                result = True
-        self.memo = {
+        return {
             "is_arm_updated": self.is_arm_updated,
             "is_github_release": is_github_release,
         }
-        return result
 
 
 def get_latest_version() -> tuple[Version, bool]:

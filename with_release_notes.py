@@ -29,8 +29,6 @@ class WithReleaseNotes(ABC):
         with open(storage := f"{self.moniker}.json") as f:
             old_version_data: _VersionData = json.load(f)
 
-        self.memo = old_version_data["memo"]
-
         if old_blocking_pr := old_version_data["blocking_pr"]:
             print(f"[bold red]{self.moniker}: Last update was blocked by PR #{old_blocking_pr}[/]")
 
@@ -44,7 +42,8 @@ class WithReleaseNotes(ABC):
 
         self.version = (version := f"{latest_version}")
         has_release_notes = self.has_release_notes()
-        should_force_rerun = self.should_force_rerun()
+        memo = self.get_memo(old_version_data["memo"] if old_version == latest_version else None)
+        should_force_rerun = old_version == latest_version and old_version_data["memo"] != memo
 
         if old_version == latest_version:
             has_minor_update = False
@@ -66,7 +65,7 @@ class WithReleaseNotes(ABC):
                 "version": version,
                 "has_release_notes": has_release_notes,
                 "blocking_pr": blocking_pr,
-                "memo": self.memo,
+                "memo": memo,
             }
             json.dump(new_version_data, f, separators=(",", ":"))
 
@@ -83,4 +82,4 @@ class WithReleaseNotes(ABC):
     def get_update_args(self) -> UpdateArgs: ...
 
     @abstractmethod
-    def should_force_rerun(self) -> bool: ...
+    def get_memo(self, old_memo: object | None) -> object: ...

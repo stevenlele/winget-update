@@ -89,9 +89,6 @@ class WeType(WithReleaseNotes):
         return _get_update_args(self.release, self.old_version)
 
     @override
-    def should_force_rerun(self) -> bool:
+    def get_memo(self, _: str | None) -> str:
         response = CLIENT.head(self.url).raise_for_status()
-        etag: str = response.headers.get("ETag").strip('"')
-        result = self.memo != etag
-        self.memo = etag
-        return result
+        return response.headers.get("ETag").strip('"')
