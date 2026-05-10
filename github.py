@@ -91,7 +91,7 @@ def update(
         message_prefix = "New version (rerun)"
     elif args.get("should_force_rerun"):
         print("The script determined that we should rerun the update...")
-        message_prefix = "New version (rerun)"
+        message_prefix = "Modify"
     elif not args.get("release_notes") or not fill_in_release_notes(manifests, identifier, args):
         print("This branch is up-to-date, we'll mark this update as done")
         return None
