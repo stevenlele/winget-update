@@ -135,7 +135,7 @@ class Telegram(WithReleaseNotes):
             self.is_arm_updated = any(
                 installer.get("Architecture") == "arm64" for installer in self.get_installers()
             )
-        if old_memo and old_memo["is_github_release"]:
+        if old_memo and old_memo["is_arm_updated"] and old_memo["is_github_release"]:
             is_github_release = True
         else:
             is_github_release = "github.com" in self.get_installers()[0]["InstallerUrl"]
