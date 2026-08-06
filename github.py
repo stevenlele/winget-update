@@ -20,6 +20,8 @@ MICROSOFT = "microsoft"
 WINGET_PKGS = "winget-pkgs"
 MICROSOFT_WINGET_PKGS = f"{MICROSOFT}/{WINGET_PKGS}"
 DEFAULT_BRANCH = "master"
+FORK_READY_RETRIES = 60
+FORK_READY_SLEEP_SECONDS = 1
 
 
 type PRNumber = int
@@ -227,23 +229,24 @@ def create_fork() -> None:
 
 
 def _wait_for_fork() -> None:
-    print("Waiting for the fork to become ready...")
-    for _ in range(30):
+    print("Waiting for the fork git refs to become ready...")
+    for _ in range(FORK_READY_RETRIES):
         response = retry_request(
             "GET",
-            f"https://api.github.com/repos/{OWNER}/{WINGET_PKGS}",
+            f"https://api.github.com/repos/{OWNER}/{WINGET_PKGS}/git/matching-refs/heads",
             headers=HEADERS,
         )
-        if response.status_code == 404:
-            sleep(1)
+        if response.status_code in (404, 409, 429) or response.status_code >= 500:
+            sleep(FORK_READY_SLEEP_SECONDS)
             continue
         payload = response.json()
         if not response.is_success:
             raise RuntimeError(pformat(payload, sort_dicts=False))
-        if payload.get("default_branch"):
-            return
-        sleep(1)
-    raise RuntimeError(f"Timed out waiting for fork {OWNER}/{WINGET_PKGS} to become ready")
+        return
+    raise RuntimeError(
+        f"Timed out waiting for fork {OWNER}/{WINGET_PKGS} git refs to become ready "
+        f"after {FORK_READY_RETRIES * FORK_READY_SLEEP_SECONDS} seconds"
+    )
 
 
 def delete_fork_if_should():
