@@ -112,6 +112,7 @@ def update(
         return None
 
     create_fork()
+    _sync_fork()
     branch_name = f"{identifier}-{version}--{datetime.now():%Y%m%d-%H%M%S}"
     print(f"Creating new branch {branch_name!r}...")
     _create_branch(branch_name, sha)
@@ -202,6 +203,15 @@ def _create_branch(name: str, sha: str):
     _rest("POST", f"/repos/{OWNER}/{WINGET_PKGS}/git/refs", json=payload)
     global _should_delete_fork
     _should_delete_fork = False
+
+
+def _sync_fork():
+    print("Syncing fork with upstream...")
+    _rest(
+        "POST",
+        f"/repos/{OWNER}/{WINGET_PKGS}/merge-upstream",
+        json={"branch": DEFAULT_BRANCH},
+    )
 
 
 def create_fork() -> None:
