@@ -223,8 +223,27 @@ def create_fork() -> None:
         f"/repos/{OWNER}/{WINGET_PKGS}/actions/permissions",
         json={"enabled": False},
     )
-    print("Sleeping 5 seconds to let the fork settle...")
-    sleep(5)
+    _wait_for_fork()
+
+
+def _wait_for_fork() -> None:
+    print("Waiting for the fork to become ready...")
+    for _ in range(30):
+        response = retry_request(
+            "GET",
+            f"https://api.github.com/repos/{OWNER}/{WINGET_PKGS}",
+            headers=HEADERS,
+        )
+        if response.status_code == 404:
+            sleep(1)
+            continue
+        payload = response.json()
+        if not response.is_success:
+            raise RuntimeError(pformat(payload, sort_dicts=False))
+        if payload.get("default_branch"):
+            return
+        sleep(1)
+    raise RuntimeError(f"Timed out waiting for fork {OWNER}/{WINGET_PKGS} to become ready")
 
 
 def delete_fork_if_should():
