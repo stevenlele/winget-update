@@ -76,9 +76,9 @@ def _fill_in_release_notes_by_locale(
         )
         notes = re.sub(r"(?:https://github\.com/.+?/commit/)?[0-9a-z]{40}", "", notes)
     if locale == "zh-CN":
-        from pangu import spacing
+        from pangu import spacing_text
 
-        notes = spacing(notes)
+        notes = spacing_text(notes)
     notes = re.sub(r" +$", "", notes, flags=re.MULTILINE)
 
     manifest = manifests[f"{identifier}.locale.{locale}.yaml"]
