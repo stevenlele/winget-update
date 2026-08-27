@@ -112,7 +112,10 @@ def update(
         return None
 
     create_fork()
-    _sync_fork()
+    try:
+        _sync_fork()
+    except Exception as e:
+        print(f"Failed to sync fork with upstream: {e}")
     branch_name = f"{identifier}-{version}--{datetime.now():%Y%m%d-%H%M%S}"
     print(f"Creating new branch {branch_name!r}...")
     _create_branch(branch_name, sha)
