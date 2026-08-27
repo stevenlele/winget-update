@@ -10,7 +10,7 @@ jobs:
     name: Update packages
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Purge cache
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -20,7 +20,7 @@ jobs:
             echo "Purging cache"
             gh cache delete --all
           fi
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.14"
           cache: pip
