@@ -15,9 +15,9 @@ def _get_installers(new_version: str, is_arm_updated: bool, github_release: dict
     installers: list[Installer] = []
 
     for arch, url in [
-        ("x64", f"https://td.telegram.org/tx64/tsetup-x64.{new_version}.exe"),
-        ("x86", f"https://td.telegram.org/tsetup/tsetup.{new_version}.exe"),
-        ("arm64", f"https://td.telegram.org/tarm64/tsetup-arm64.{new_version}.exe"),
+        ("x64", f"https://td.telegram.org/win-x64/td-setup-win-x64-{new_version}.exe"),
+        ("x86", f"https://td.telegram.org/win-x86/td-setup-win-x86-{new_version}.exe"),
+        ("arm64", f"https://td.telegram.org/win-arm/td-setup-win-arm-{new_version}.exe"),
     ]:
         if True:
             installers.append({
@@ -30,9 +30,9 @@ def _get_installers(new_version: str, is_arm_updated: bool, github_release: dict
             })
 
     for arch, url in [
-        ("x64", f"https://td.telegram.org/tx64/tportable-x64.{new_version}.zip"),
-        ("x86", f"https://td.telegram.org/tsetup/tportable.{new_version}.zip"),
-        ("arm64", f"https://td.telegram.org/tarm64/tportable-arm64.{new_version}.zip"),
+        ("x64", f"https://td.telegram.org/win-x64/td-portable-win-x64-{new_version}.zip"),
+        ("x86", f"https://td.telegram.org/win-x86/td-portable-win-x86-{new_version}.zip"),
+        ("arm64", f"https://td.telegram.org/win-arm/td-portable-win-arm-{new_version}.zip"),
     ]:
         if True:
             installers.append({
