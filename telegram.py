@@ -146,7 +146,7 @@ class Telegram(WithReleaseNotes):
 
 
 def get_latest_version() -> tuple[Version, bool]:
-    response = json.loads(get("https://td.telegram.org/current4"))
+    response = json.loads(get("https://td.telegram.org/current6"))
 
     win64_stable = response["win64"]["stable"]
     win32_stable = response["win"]["stable"]
