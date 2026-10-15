@@ -111,6 +111,7 @@ def update_new_version(
 ):
     original = manifests.copy()
     locales = args.get("release_notes", {}).keys()
+    base_version = _get_yaml().load(manifests[f"{identifier}.installer.yaml"])["PackageVersion"]
 
     for filename, text in manifests.items():
         text, newline = _normalize_crlf(text)
@@ -171,7 +172,11 @@ def update_new_version(
 
             doc["ReleaseDate"] = args.get("release_date", inferred_date)
         elif ".locale." in filename:
-            if (prefix := args.get("keep_notes_on_version_prefix")) and version.startswith(prefix):
+            if (
+                (prefix := args.get("keep_notes_on_version_prefix"))
+                and base_version.startswith(prefix)
+                and version.startswith(prefix)
+            ):
                 pass
             elif filename.removesuffix(".yaml").partition(".locale.")[2] in locales:
                 pass
