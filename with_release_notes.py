@@ -58,8 +58,14 @@ class WithReleaseNotes(ABC):
 
         args = self.get_update_args()
         args["should_force_rerun"] = should_force_rerun
-        version = str(self.get_update_version(latest_version))
-        blocking_pr = update(self.identifier, version, self.get_installers(), args)
+        def resolve_version() -> str:
+            nonlocal version
+            version = str(self.get_update_version(latest_version))
+            return version
+
+        blocking_pr = update(
+            self.identifier, version, self.get_installers, args, resolve_version=resolve_version
+        )
 
         with open(storage, "w") as f:
             new_version_data: _VersionData = {

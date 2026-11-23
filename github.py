@@ -32,8 +32,10 @@ def get_gh_api(url: str) -> Any:
 def update(
     identifier: str,
     version: str,
-    installers: Sequence[Installer],
+    installers: Sequence[Installer] | Callable[[], Sequence[Installer]],
     args: UpdateArgs = {"base_version": ""},
+    *,
+    resolve_version: Callable[[], str] | None = None,
 ) -> PRNumber | None:
     print(f"Updating {identifier!r} to {version}", end="")
     if args.get("release_notes"):
@@ -63,6 +65,12 @@ def update(
                 continue
             assert other_open_pr is None
             other_open_pr = pr
+
+    if resolve_version:
+        resolved_version = resolve_version()
+        if resolved_version != version:
+            print(f"Resolved version: {resolved_version}")
+        version = resolved_version
 
     if owner_open_pr:
         print("Checking owner's PR...")
@@ -103,7 +111,9 @@ def update(
 
     if message_prefix != "ReleaseNotes":
         manifests = _get_base_manifests(identifier, args, sha=sha)
-        update_new_version(manifests, identifier, version, installers, args)
+        update_new_version(
+            manifests, identifier, version, installers() if callable(installers) else installers, args
+        )
 
     message = f"{message_prefix}: {identifier} version {version}"
     if owner_open_pr:
