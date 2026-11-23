@@ -33,8 +33,8 @@ class WithReleaseNotes(ABC):
             print(f"[bold red]{self.moniker}: Last update was blocked by PR #{old_blocking_pr}[/]")
 
         self.old_version = old_version_data["version"]
-        old_version = Version(self.old_version)
-        if (latest_version := self.get_latest_version()) < old_version:
+        old_version = self.get_comparison_version(Version(self.old_version))
+        if (latest_version := self.get_comparison_version(self.get_latest_version())) < old_version:
             return print(
                 f"::error file={self.moniker}.py,title=Version"
                 f" rollback::{self.moniker} {old_version} -> {latest_version}"
@@ -58,6 +58,7 @@ class WithReleaseNotes(ABC):
 
         args = self.get_update_args()
         args["should_force_rerun"] = should_force_rerun
+        version = str(self.get_update_version(latest_version))
         blocking_pr = update(self.identifier, version, self.get_installers(), args)
 
         with open(storage, "w") as f:
@@ -68,6 +69,12 @@ class WithReleaseNotes(ABC):
                 "memo": memo,
             }
             json.dump(new_version_data, f, separators=(",", ":"))
+
+    def get_comparison_version(self, version: Version) -> Version:
+        return version
+
+    def get_update_version(self, version: Version) -> Version:
+        return version
 
     @abstractmethod
     def get_latest_version(self) -> Version: ...

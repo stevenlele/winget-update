@@ -1,6 +1,7 @@
 import json
-
+import socket
 import struct
+from contextlib import contextmanager
 from datetime import date
 from hashlib import md5, sha256
 from tempfile import TemporaryFile
@@ -13,6 +14,21 @@ from with_release_notes import WithReleaseNotes
 
 def main():
     QQ().main()
+
+
+@contextmanager
+def _download_signed(url: str):
+    signed_url = CLIENT.post(
+        "https://im.qq.com/http2rpc/gotrpc/noauth/trpc.qqntv2.urlsign.UrlSign/GetSign",
+        headers={
+            "x-oidb": '{"uint32_command":"0x9b8e","uint32_service_type":1}',
+            "Referer": "https://im.qq.com/index/",
+        },
+        json={"url": url},
+    ).raise_for_status().json()["data"]["url"]
+    with CLIENT.stream("GET", signed_url, headers={"Referer": "https://im.qq.com/index/"}) as response:
+        response.raise_for_status()
+        yield response
 
 
 def _get_exe_version(installer) -> Version:
@@ -64,44 +80,34 @@ class QQ(WithReleaseNotes):
         self.config = json.loads(
             get("https://im.qq.com/proxy/domain/cdn-go.cn/qq-web/im.qq.com_new/latest/rainbow/pcConfig.json")
         )["Windows"]
-        url = self.config["ntDownloadX64Url"]
-        signed_url = CLIENT.post(
-            "https://im.qq.com/http2rpc/gotrpc/noauth/trpc.qqntv2.urlsign.UrlSign/GetSign",
-            headers={
-                "x-oidb": '{"uint32_command":"0x9b8e","uint32_service_type":1}',
-                "Referer": "https://im.qq.com/index/",
-            },
-            json={"url": url},
-        ).raise_for_status().json()["data"]["url"]
+        return Version(self.config["version"])
+
+    @override
+    def get_comparison_version(self, version: Version) -> Version:
+        return Version(version.value[:3])
+
+    @override
+    def get_update_version(self, version: Version) -> Version:
         digest = sha256()
         with TemporaryFile() as installer:
-            with CLIENT.stream("GET", signed_url, headers={"Referer": "https://im.qq.com/index/"}) as response:
-                response.raise_for_status()
+            with _download_signed(self.config["ntDownloadX64Url"]) as response:
                 for chunk in response.iter_bytes():
                     installer.write(chunk)
                     digest.update(chunk)
 
-            version = _get_exe_version(installer)
+            self.full_version = _get_exe_version(installer)
+        assert self.get_comparison_version(self.full_version) == version
         self.x64_sha256 = digest.hexdigest().upper()
-        return version
+        return self.full_version
 
     @override
     def get_installers(self) -> list[Installer]:
         hashes = {"x64": self.x64_sha256}
         directories = {}
         for architecture, key in (("x86", "ntDownloadUrl"), ("arm64", "ntDownloadARMUrl")):
-            signed_url = CLIENT.post(
-                "https://im.qq.com/http2rpc/gotrpc/noauth/trpc.qqntv2.urlsign.UrlSign/GetSign",
-                headers={
-                    "x-oidb": '{"uint32_command":"0x9b8e","uint32_service_type":1}',
-                    "Referer": "https://im.qq.com/index/",
-                },
-                json={"url": self.config[key]},
-            ).raise_for_status().json()["data"]["url"]
             digest = sha256()
             directory_hash = md5(usedforsecurity=False)
-            with CLIENT.stream("GET", signed_url, headers={"Referer": "https://im.qq.com/index/"}) as response:
-                response.raise_for_status()
+            with _download_signed(self.config[key]) as response:
                 for chunk in response.iter_bytes():
                     digest.update(chunk)
                     directory_hash.update(chunk)
@@ -111,7 +117,7 @@ class QQ(WithReleaseNotes):
         installers: list[Installer] = []
         for architecture in ("x86", "x64", "arm64"):
             directory = directories["arm64" if architecture == "arm64" else "x86"]
-            url = f"https://qqdl.gtimg.cn/qqfile/QQNT/{self.config['version']}/beta/{directory}/QQ{self.version}_{architecture}.exe"
+            url = f"https://qqdl.gtimg.cn/qqfile/QQNT/{self.config['version']}/beta/{directory}/QQ{self.full_version}_{architecture}.exe"
             digest = sha256()
             with CLIENT.stream("GET", url) as response:
                 response.raise_for_status()
@@ -125,11 +131,18 @@ class QQ(WithReleaseNotes):
 
     @override
     def has_release_notes(self) -> bool:
-        config = get("https://qq-web.cdn-go.cn/im.qq.com_new/latest/rainbow/windowsLog.js")
+        ip = socket.getaddrinfo("cdn-go.cn.cloud.tc.qq.com", 443, socket.AF_INET)[0][4][0]
+        print(f"Fetching QQ release notes via {ip}")
+        request = CLIENT.build_request(
+            "GET", "https://cdn-go.cn/qq-web/im.qq.com_new/latest/rainbow/windowsLog.js"
+        )
+        request.extensions["sni_hostname"] = request.url.host
+        request.url = request.url.copy_with(host=ip)
+        config = CLIENT.send(request).raise_for_status().text
         start = config.index("var params= ") + len("var params= ")
         changelog = json.JSONDecoder().raw_decode(config[start:])[0]["log"]
         self.release = next(
-            (release for release in changelog if release["version"].endswith(self.config["version"])),
+            (release for release in changelog if release["version"].endswith(self.version)),
             None,
         )
         return bool(self.release)
@@ -147,5 +160,5 @@ class QQ(WithReleaseNotes):
         return args
 
     @override
-    def get_memo(self, _: object | None) -> object:
+    def get_memo(self, old_memo: object | None) -> object:
         return None
